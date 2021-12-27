@@ -545,6 +545,7 @@ String padding(unsigned int number, unsigned int width) {
 void OnTxDone( void )
 {
   //Serial.print("TX done!");
+  //Radio.Sleep( );
   if(LORA_RGB) turnOnRGB(0,0);
   is_txing = false;
 }
@@ -567,12 +568,12 @@ void userKey(void)
     delay(1);
     if (keyDownTime >= 1000){
       if (menuMode){
-        Serial.println("Button >1000 in menu");
+        //Serial.println("Button >1000 in menu");
         executeMenu();
         
         break;
       } else {
-        Serial.println("Button >1000 outside menu");
+        //Serial.println("Button >1000 outside menu");
         send_update = true;
         break;
       }
@@ -580,7 +581,7 @@ void userKey(void)
   }
 
   if (keyDownTime < 700){
-    Serial.println("Button <700");
+    //Serial.println("Button <700");
     //send_update = true;
     //displayMenu();
     //menuMode = true;

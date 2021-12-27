@@ -188,30 +188,25 @@ void show_display(String header, String line1, String line2, String line3, Strin
 // cppcheck-suppress unusedFunction
 void show_display(String header, bool isTxing, String line1, String line2, String line3, String line4, String line5, int wait) {
 
-  //#define pngegg_width 16
-//#define pngegg_height 10
   const uint8_t send_icon_bmp[] PROGMEM = {
     0xf8, 0xff, 0x0c, 0xc0, 0x14, 0xe0, 0x64, 0x98, 0xc7, 0x8c, 0x04, 0x83,
-    0x04, 0x80, 0x1e, 0x80, 0x04, 0x80, 0xf8, 0x7f };
+    0x04, 0x80, 0x1e, 0x80, 0x04, 0x80, 0xf8, 0x7f 
+  };
 
   display.clear();
+
   if (isTxing){
     display.drawXbm(112, 0, 16, 10, send_icon_bmp);
   }
+
   display.setFont(ArialMT_Plain_16);
   display.setTextAlignment(TEXT_ALIGN_LEFT);
-  //display.setCursor(0, 0);
   display.drawString(0,0,header);
   display.setFont(ArialMT_Plain_10);
-  //display.setCursor(0, 16);
   display.drawString(0,14,line1);
-  //display.setCursor(0, 26);
   display.drawString(0,24,line2);
-  //display.setCursor(0, 36);
   display.drawString(0,34,line3);
-  //display.setCursor(0, 46);
   display.drawString(0,44,line4);
-  //display.setCursor(0, 56);
   display.drawString(0,54,line5);
 
   display.display();
