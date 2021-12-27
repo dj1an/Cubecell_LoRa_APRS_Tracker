@@ -54,7 +54,7 @@ jobs:
       - uses: actions/upload-artifact@v2
         with:
           name: firmware
-          path: .pio/build/*/firmware.cyad
+          path: .pio/build/*/firmware.cyacd
 
   formatting-check:
     name: Formatting Check
