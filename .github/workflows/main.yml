@@ -26,7 +26,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install --upgrade platformio
       - name: Run PlatformIO Check
-        run: platformio check --fail-on-defect low --fail-on-defect medium --fail-on-defect high
+        run: platformio check --fail-on-defect high
 
   PlatformIO-Build:
     runs-on: ubuntu-latest
