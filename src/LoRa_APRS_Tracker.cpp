@@ -172,6 +172,7 @@ void loop() {
 
   bool          gps_time_update     = gps.time.isUpdated();
   bool          gps_loc_update      = gps.location.isUpdated();
+  bool          gps_loc_valid       = gps.location.isValid();
   static time_t nextBeaconTimeStamp = -1;
 
   static double       currentHeading          = 0;
@@ -180,7 +181,9 @@ void loop() {
 
   if (gps.time.isValid()) {
     setTime(gps.time.hour(), gps.time.minute(), gps.time.second(), gps.date.day(), gps.date.month(), gps.date.year());
+  }
 
+  if (gps_loc_valid) {
     if (gps_loc_update && nextBeaconTimeStamp <= now()) {
       send_update = true;
       if (DSB_ACTIVE) {
@@ -206,7 +209,7 @@ void loop() {
 
 
 
-  if (!send_update && gps_loc_update && DSB_ACTIVE) {
+  if (!send_update && gps_loc_update && DSB_ACTIVE && gps_loc_valid ) {
     uint32_t lastTx = millis() - lastTxTime;
     currentHeading  = gps.course.deg();
     lastTxdistance  = TinyGPSPlus::distanceBetween(gps.location.lat(), gps.location.lng(), lastTxLat, lastTxLng);
@@ -231,7 +234,7 @@ void loop() {
     }
   }
 
-  if (send_update && gps_loc_update) {
+  if (send_update && gps_loc_update && gps_loc_valid) {
     send_update         = false;
     nextBeaconTimeStamp = now() + (DSB_ACTIVE ? SB_SLOW_RATE : DBEACON_TIMEOUT );
 
