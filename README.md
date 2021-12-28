@@ -42,5 +42,8 @@ The best success is to use PlatformIO (and it is the only platform where I can s
 
 ### Button Actions
 
-Upper Button can be used, the lower Button is hardwired to Device Reset.
+Top Button can be used, the lower Button is hardwired to Device Reset.
 
+* Button < 1s: Open Menu
+* Button > 1s: Send Position
+* Button > 1s in Menu: Change Setting
