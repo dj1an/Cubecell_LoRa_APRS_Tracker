@@ -45,10 +45,6 @@ int16_t txNumber;
 
 int16_t rssi, snr, rxSize;
 
-static void handle_tx_click() {
-  send_update = true;
-}
-
 char txpacket[BUFFER_SIZE];
 char rxpacket[BUFFER_SIZE];
 
@@ -86,7 +82,6 @@ void VextON(void);
 void VextOFF(void);
 void OnTxDone( void );
 void OnTxTimeout( void );
-int32_t fracPart(double val, int n);
 float getBattVoltage();
 uint8_t getBattStatus();
 void switchScrenOffMode();
@@ -642,8 +637,7 @@ void userKey(void)
 
 void displayMenu()
 {
-  int prev; 
-  int next; 
+
   String currentOption = menu[currentMenu];
   String currentValue;
   String currentValue2;
@@ -678,20 +672,6 @@ void displayMenu()
     break;
   }
 
-  prev = currentMenu - 1;
-
-  if (prev < 0)
-  {
-    prev = MENU_CNT - 1;
-  }
-
-  next = currentMenu + 1;
-
-  if (next >= MENU_CNT)
-  {
-    next = 0;
-  }
-  //show_display_menu("Menu", menu[prev], currentOption, menu[next]);
   show_display_menu("Menu            "+String(currentMenu+1)+"/"+String(MENU_CNT), "", currentOption, currentValue, currentValue2);
 }
 
@@ -877,19 +857,11 @@ void VextOFF(void)
 
 float getBattVoltage()
 {
-  uint16_t batteryVoltage;
+  uint16_t battVoltage;
   detachInterrupt(USER_KEY); // reading battery voltage is messing up with the pin and driving it down, which simulates a long press for our interrupt handler 
   
-  batteryVoltage = getBatteryVoltage();
-  float_t batV = ((float_t)batteryVoltage * VBAT_CORRECTION)/1000;  // Multiply by the appropriate value for your own device to adjust the measured value after calibration
-    //#ifdef DEBUG
-    //Serial.println();
-    //Serial.print("Bat V: ");
-    //Serial.print(batteryVoltage); 
-    //Serial.print(" (");
-    //Serial.print(batV);
-    //Serial.println(")");
-    //#endif 
+  battVoltage = getBatteryVoltage();
+  float_t batV = ((float_t)battVoltage * VBAT_CORRECTION)/1000;  // Multiply by the appropriate value for your own device to adjust the measured value after calibration
   attachInterrupt(USER_KEY, userKey, FALLING);  // Attach again after voltage reading is done
   return batV;
 }
@@ -897,7 +869,7 @@ float getBattVoltage()
 uint8_t getBattStatus()
 {
   uint8_t batteryLevel;
-  float_t batteryLevelPct;
+  //float_t batteryLevelPct;
   detachInterrupt(USER_KEY); // reading battery voltage is messing up with the pin and driving it down, which simulates a long press for our interrupt handler 
 
     //get Battery Level 1-254 Returned by BoardGetBatteryLevel
@@ -908,17 +880,10 @@ uint8_t getBattStatus()
     *                               255: Error
     */
   batteryLevel = BoardGetBatteryLevel();
-  batteryLevelPct = ((float_t)batteryLevel - BAT_LEVEL_EMPTY) * 100 / (BAT_LEVEL_FULL - BAT_LEVEL_EMPTY);
+  //batteryLevelPct = ((float_t)batteryLevel - BAT_LEVEL_EMPTY) * 100 / (BAT_LEVEL_FULL - BAT_LEVEL_EMPTY);
  
   attachInterrupt(USER_KEY, userKey, FALLING);  // Attach again after voltage reading is done
-  //Serial.println(batteryLevel);
-
   return batteryLevel;
-}
-
-int32_t fracPart(double val, int n)
-{
-  return (int32_t)abs(((val - (int32_t)(val)) * pow(10, n)));
 }
 
 void switchScrenOffMode()
