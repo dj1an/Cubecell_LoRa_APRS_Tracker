@@ -4,7 +4,7 @@ This Project is a fork of [@peterus LoRa APRS ESP32 Tracker](https://github.com/
 
 The code has many parts of the [CubeCell-GPS Helium Mapper](https://github.com/hkicko/CubeCell-GPS-Helium-Mapper)
 
-![Tracker](pics/Tracker.png)
+![Tracker](pics/cubecell_tracker.png)
 
 ## Supported boards
 
