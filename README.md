@@ -4,6 +4,8 @@ This Project is a fork of [@peterus LoRa APRS ESP32 Tracker](https://github.com/
 
 The code has many parts of the [CubeCell-GPS Helium Mapper](https://github.com/hkicko/CubeCell-GPS-Helium-Mapper)
 
+![Tracker](pics/Tracker.png)
+
 ## Supported boards
 
 At this moment, only the Heltec CubeCell GPS is supported:
@@ -37,4 +39,8 @@ The best success is to use PlatformIO (and it is the only platform where I can s
 ### Configuration
 
 * You can find all necessary settings to change for your configuration in **src/config.h**.
+
+### Button Actions
+
+Upper Button can be used, the lower Button is hardwired to Device Reset.
 
