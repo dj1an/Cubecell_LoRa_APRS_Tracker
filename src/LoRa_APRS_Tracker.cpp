@@ -376,6 +376,10 @@ void loop() {
     Serial.println("Check your GPS - No GPS Data");
   }
   Radio.IrqProcess( );
+
+  if (sleepMode){
+    lowPowerHandler();
+  }
 }
 
 
@@ -872,7 +876,8 @@ uint8_t getBattStatus()
   //float_t batteryLevelPct;
   detachInterrupt(USER_KEY); // reading battery voltage is messing up with the pin and driving it down, which simulates a long press for our interrupt handler 
 
-    //get Battery Level 1-254 Returned by BoardGetBatteryLevel
+    //get Battery Level 1-254 Returned by BoardGetBatteryLevel 
+    //!!In Practice 0 is never returned? No Battery = 254 !!
     /*                                0: USB,
     *                                 1: Min level,
     *                                 x: level
@@ -881,7 +886,7 @@ uint8_t getBattStatus()
     */
   batteryLevel = BoardGetBatteryLevel();
   //batteryLevelPct = ((float_t)batteryLevel - BAT_LEVEL_EMPTY) * 100 / (BAT_LEVEL_FULL - BAT_LEVEL_EMPTY);
- 
+  
   attachInterrupt(USER_KEY, userKey, FALLING);  // Attach again after voltage reading is done
   return batteryLevel;
 }
@@ -891,7 +896,6 @@ void switchScrenOffMode()
   screenOffMode = true;  
   //displayLogoAndMsg("Scren off....", 2000);          
   VextOFF();
-  //display.stop();
   stop_display();
   isDispayOn = 0;   
 }
