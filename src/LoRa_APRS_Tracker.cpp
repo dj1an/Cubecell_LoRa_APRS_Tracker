@@ -21,6 +21,7 @@ void setup_lora();
 void setup_gps();
 void sleep_gps();
 void userKey();
+void telemetry();
 
 String        create_lat_aprs(RawDegrees lat);
 String        create_long_aprs(RawDegrees lng);
@@ -33,6 +34,7 @@ String        getSmartBeaconState();
 String        padding(unsigned int number, unsigned int width);
 int           TEMP, PRESS, HUMID, WIND_S, WIND_DIR, RAIN;
 static bool   STATIC_BEACON, WEATHER_DATA;
+static bool   BMPFOUND           = false;
 static bool   BatteryIsConnected = false;
 static String batteryVoltage     = "";
 static bool   DSB_ACTIVE         = SB_ACTIVE;      // initial Smartbeacon State can be changed via menu
@@ -107,8 +109,13 @@ void setup() {
   setup_display();
   VextON(); // activate RGB Pixel
   show_display("DJ1AN", "CubeCell", "LoRa APRS Tracker", 500);
-  bmp.begin();
-  pinMode(Vext, OUTPUT);
+
+  if (!bmp.begin()) {
+    Serial.println("Could not find a valid BMP085 sensor, check wiring!");
+  } else {
+    BMPFOUND = true;
+  }
+
   setup_gps();
   setup_lora();
 
@@ -138,28 +145,7 @@ void setup() {
   batteryVoltage = String(getBattVoltage());
   // EEPROM.begin(512);
 }
-void telemetry() {
-  pinMode(Vext, OUTPUT);
-  digitalWrite(Vext, LOW);
-  Serial.begin(115200);
-  if (!bmp.begin()) {
-    Serial.println("Could not find a valid BMP085 sensor, check wiring!");
-    return;
-  }
-  Serial.print("Temperature = ");
-  Serial.print(bmp.readTemperature());
-  Serial.println(" *C");
-  TEMP = bmp.readTemperature();
-  // convert temp to farhenheit
-  // APRS expects temp in Farenheit
-  TEMP = (TEMP * 9 / 5) + 32;
-  Serial.print("Pressure = ");
-  Serial.print(bmp.readPressure());
-  Serial.println(" Pa");
-  PRESS = bmp.readPressure();
-  // HUMID = bmp.readHumidity();
-  delay(500);
-}
+
 // cppcheck-suppress unusedFunction
 void loop() {
   // userButton.tick();
@@ -262,7 +248,8 @@ void loop() {
     String      lat;
     String      lng;
     String      dao;
-
+    String      aprsmsg;
+    
     msg.setSource(DCALLSIGN);
     msg.setDestination("APZASR-1");
 
@@ -308,27 +295,29 @@ void loop() {
     } else {
       speed_zero_sent = 0;
     }
-    telemetry();
-    String TEMPERATURE = String(TEMP);
-    String PRESSURE    = String(PRESS);
-    // REMOVE LAST CHARACTER FROM PRESSURE
-    PRESSURE.remove(PRESSURE.length() - 1); // PRESSURE ON APRS IS ONLY 5 DIGITS
+    
+    if (BMPFOUND && WEATHER_DATA) {
+      telemetry();
+      String TEMPERATURE = String(TEMP);
+      String PRESSURE    = String(PRESS);
+      // REMOVE LAST CHARACTER FROM PRESSURE
+      PRESSURE.remove(PRESSURE.length() - 1); // PRESSURE ON APRS IS ONLY 5 DIGITS
 
-    // Uncomment to enable APRS telemetry for sensors with more data.
+      // Uncomment to enable APRS telemetry for sensors with more data.
 
-    /// String HUMIDITY = String(HUMID);
-    /// String WIND_SPEED    = String(WIND_S);
-    /// String WIND_DIRECTION    = String(WIND_DIR);
-    /// String RAINX = String(RAIN);
+      /// String HUMIDITY = String(HUMID);
+      /// String WIND_SPEED    = String(WIND_S);
+      /// String WIND_DIRECTION    = String(WIND_DIR);
+      /// String RAINX = String(RAIN);
 
-    // Using ... notifies APRS that the fields are NULL thus not showing up
-    // in the telemetry.
-    String HUMIDITY       = "...";
-    String WIND_SPEED     = "...";
-    String WIND_DIRECTION = "...";
-    String RAINX          = "...";
-    String aprsmsg;
-    if (WEATHER_DATA == true) {
+      // Using ... notifies APRS that the fields are NULL thus not showing up
+      // in the telemetry.
+      String HUMIDITY       = "...";
+      String WIND_SPEED     = "...";
+      String WIND_DIRECTION = "...";
+      String RAINX          = "...";
+      
+    
 
       Serial.print("Weather data enabled");
       aprsmsg = "!" + lat + DBEACON_OVERLAY + lng + DBEACON_SYMBOL + WIND_DIRECTION + "/" + WIND_SPEED + "g" + RAINX + "t" + TEMPERATURE + "h" + HUMIDITY + "b" + PRESSURE;
@@ -337,9 +326,13 @@ void loop() {
       // t = temprature
       // h = humidity
       // b = pressure
-    } else if (STATIC_BEACON == true) {
+    } 
+    
+    if (STATIC_BEACON && !WEATHER_DATA) {
       aprsmsg = "!" + DBEACON_LATITUDE + DBEACON_OVERLAY + DBEACON_LONGITUDE + DBEACON_SYMBOL + DBEACON_MESSAGE;
-    } else {
+    }
+    
+    if (!STATIC_BEACON && !WEATHER_DATA){
       aprsmsg = "!" + lat + DBEACON_OVERLAY + lng + DBEACON_SYMBOL + course_and_speed + alt;
       // message_text every 10's packet (i.e. if we have beacon rate 1min at high
       // speed -> every 10min). May be enforced above (at expirey of smart beacon
@@ -363,6 +356,7 @@ void loop() {
         // aprsmsg += "Pa";
       }
     }
+
     msg.getAPRSBody()->setData(aprsmsg);
     String data = msg.encode();
 
@@ -984,4 +978,22 @@ void activateProfile(int profileNr) {
     DCALLSIGN         = P4_CALLSIGN;
     STATIC_BEACON     = true;
   }
+}
+
+void telemetry() {
+  
+
+  Serial.print("Temperature = ");
+  Serial.print(bmp.readTemperature());
+  Serial.println(" *C");
+  TEMP = bmp.readTemperature();
+  // convert temp to farhenheit
+  // APRS expects temp in Farenheit
+  TEMP = (TEMP * 9 / 5) + 32;
+  Serial.print("Pressure = ");
+  Serial.print(bmp.readPressure());
+  Serial.println(" Pa");
+  PRESS = bmp.readPressure();
+  // HUMID = bmp.readHumidity();
+  delay(500);
 }
