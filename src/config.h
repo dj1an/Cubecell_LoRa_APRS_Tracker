@@ -4,6 +4,10 @@
 //
 // Symbol Lookup Table:
 // https://blog.thelifeofkenneth.com/2017/01/aprs-symbol-look-up-table.html
+//
+// GPS Profile https://cdn.sparkfun.com/assets/parts/1/2/2/8/0/PMTK_Packet_User_Manual.pdf
+// On page 22 and 23
+//
 
 #define DEFAULT_PROFILE 0 // Profile to use after Reboot
 
@@ -14,6 +18,7 @@
 #define SB_ACTIVE   true // smart Beacon
 #define BEACON_TIMEOUT  60  // fixed Beacon interval in s if Smartbeacon inactive
 #define CALLSIGN    "N0CALL-7"   // your callsign
+#define GPSMODE     0 // Vehicle mode: For general purpose
 
 // Profile 1 - Runner Symbol
 #define P1_BEACON_SYMBOL "["
@@ -22,6 +27,7 @@
 #define P1_SB_ACTIVE   true // smart Beacon
 #define P1_BEACON_TIMEOUT  60  // fixed Beacon interval in s if Smartbeacon inactive
 #define P1_CALLSIGN    "N0CALL-8"   // your callsign
+#define P1_GPSMODE  1 //Pedestrian: For running and walking purpose that the low-speed (< 5m/s) movement will have more effect on the position calculation.
 
 // Profile 2 - Balloon
 #define P2_BEACON_SYMBOL "O"
@@ -30,7 +36,7 @@
 #define P2_SB_ACTIVE   false // smart Beacon
 #define P2_BEACON_TIMEOUT  30  // fixed Beacon interval in s if Smartbeacon inactive
 #define P2_CALLSIGN    "N0CALL-12"   // your callsign
-
+#define P2_GPSMODE      3 // Balloon mode: For high-altitude balloon purpose that the vertical movement will have more effect on the position calculation.
 
 // Global Settings for All Profiles
 // 

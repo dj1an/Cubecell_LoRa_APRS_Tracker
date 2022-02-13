@@ -36,6 +36,7 @@ static String DBEACON_SYMBOL = BEACON_SYMBOL;
 static String DBEACON_OVERLAY = BEACON_OVERLAY;
 static String DBEACON_MESSAGE = BEACON_MESSAGE;
 static String DCALLSIGN = CALLSIGN;
+static int DGPSMODE = GPSMODE;
 
 static bool send_update = true;
 static bool is_txing = false;
@@ -349,6 +350,12 @@ void loop() {
 
     }
 
+    //Serial.print("Sats:");Serial.print(gps.satellites.value());
+    //Serial.print(" Lat:");Serial.print(gps.location.lat());
+    //Serial.print(" Lon:");Serial.print(gps.location.lng());
+    //Serial.print(" Alt:");Serial.print(gps.altitude.meters());
+    //Serial.print(" Speed:");Serial.println(gps.speed.kmph());
+
     if (DSB_ACTIVE) {
       // Change the Tx internal based on the current speed
       int curr_speed = (int)gps.speed.kmph();
@@ -413,6 +420,7 @@ void setup_lora() {
 
 void setup_gps() {
     gps.begin();
+    //gps.sendcmd("$PMTK886,3*2B\r\n");
 }
 
 void sleep_gps() {
@@ -913,6 +921,7 @@ void switchScreenOnMode()
 
 void activateProfile(int profileNr){
   Serial.print("Activate Profile #: ");Serial.println(profileNr);
+  String GPSMODESTR;
   switch (profileNr) {
     case 0:
       DSB_ACTIVE = SB_ACTIVE;
@@ -921,6 +930,7 @@ void activateProfile(int profileNr){
       DBEACON_OVERLAY = BEACON_OVERLAY;
       DBEACON_SYMBOL = BEACON_SYMBOL;
       DCALLSIGN = CALLSIGN;
+      DGPSMODE = GPSMODE;
     break;
     case 1:
       DSB_ACTIVE = P1_SB_ACTIVE;
@@ -929,6 +939,7 @@ void activateProfile(int profileNr){
       DBEACON_OVERLAY = P1_BEACON_OVERLAY;
       DBEACON_SYMBOL = P1_BEACON_SYMBOL;
       DCALLSIGN = P1_CALLSIGN;
+      DGPSMODE = P1_GPSMODE;
     break;
     case 2:
       DSB_ACTIVE = P2_SB_ACTIVE;
@@ -937,7 +948,10 @@ void activateProfile(int profileNr){
       DBEACON_OVERLAY = P2_BEACON_OVERLAY;
       DBEACON_SYMBOL = P2_BEACON_SYMBOL;
       DCALLSIGN = P2_CALLSIGN;
+      DGPSMODE = P2_GPSMODE;
     break;
   }
 
+  GPSMODESTR = "$PMTK886,"+String(DGPSMODE)+"*2B\r\n";
+  gps.sendcmd(GPSMODESTR);
 }
