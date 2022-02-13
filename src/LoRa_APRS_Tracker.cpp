@@ -21,35 +21,32 @@ void setup_lora();
 void setup_gps();
 void sleep_gps();
 void userKey();
-void telemetry();
 
-String        create_lat_aprs(RawDegrees lat);
-String        create_long_aprs(RawDegrees lng);
-String        create_lat_aprs_dao(RawDegrees lat);
-String        create_long_aprs_dao(RawDegrees lng);
-String        create_dao_aprs(RawDegrees lat, RawDegrees lng);
-String        createDateString(time_t t);
-String        createTimeString(time_t t);
-String        getSmartBeaconState();
-String        padding(unsigned int number, unsigned int width);
-int           TEMP, PRESS, HUMID, WIND_S, WIND_DIR, RAIN;
-static bool   STATIC_BEACON, WEATHER_DATA;
-static bool   BMPFOUND           = false;
-static bool   BatteryIsConnected = false;
-static String batteryVoltage     = "";
-static bool   DSB_ACTIVE         = SB_ACTIVE;      // initial Smartbeacon State can be changed via menu
-static int    DBEACON_TIMEOUT    = BEACON_TIMEOUT; // initial Beacon Rate
-static bool   DSCREEN_OFF        = false;          // initial Screen timeout deactivated
-static int    DPROFILE_NR        = DEFAULT_PROFILE;
-static String DBEACON_SYMBOL     = BEACON_SYMBOL;
-static String DBEACON_OVERLAY    = BEACON_OVERLAY;
-static String DBEACON_MESSAGE    = BEACON_MESSAGE;
-static String DCALLSIGN          = CALLSIGN;
-static String DBEACON_LATITUDE   = BEACON_LATITUDE;
-static String DBEACON_LONGITUDE  = BEACON_LONGITUDE;
+String create_lat_aprs(RawDegrees lat);
+String create_long_aprs(RawDegrees lng);
+String create_lat_aprs_dao(RawDegrees lat);
+String create_long_aprs_dao(RawDegrees lng);
+String create_dao_aprs(RawDegrees lat, RawDegrees lng);
+String createDateString(time_t t);
+String createTimeString(time_t t);
+String getSmartBeaconState();
+String padding(unsigned int number, unsigned int width);
 
-static bool          send_update = true;
-static bool          is_txing    = false;
+static bool   BatteryIsConnected   = false;
+static String batteryVoltage       = "";
+static bool DSB_ACTIVE = SB_ACTIVE; // initial Smartbeacon State can be changed via menu
+static int DBEACON_TIMEOUT = BEACON_TIMEOUT; // initial Beacon Rate
+static bool DSCREEN_OFF = false; // initial Screen timeout deactivated
+static int DPROFILE_NR = DEFAULT_PROFILE;
+static String DBEACON_SYMBOL = BEACON_SYMBOL;
+static String DBEACON_OVERLAY = BEACON_OVERLAY;
+static String DBEACON_MESSAGE = BEACON_MESSAGE;
+static String DCALLSIGN = CALLSIGN;
+static int DGPSMODE = GPSMODE;
+static int DSOSTIMEOUT = SOSTIMEOUT;
+
+static bool send_update = true;
+static bool is_txing = false;
 static RadioEvents_t RadioEvents;
 
 int16_t txNumber;
@@ -401,6 +398,12 @@ void loop() {
       show_display(DCALLSIGN + String(""), is_txing, createDateString(now()) + " " + createTimeString(now()), String("Sats: ") + gps.satellites.value() + " HDOP: " + gps.hdop.hdop(), String("Nxt Bcn: ") + (DSB_ACTIVE ? "~" : "") + createTimeString(nextBeaconTimeStamp), BatteryIsConnected ? (String("Bat: ") + batteryVoltage + "V") : "Powered via USB", String("Smart Beacon: " + getSmartBeaconState()));
     }
 
+    //Serial.print("Sats:");Serial.print(gps.satellites.value());
+    //Serial.print(" Lat:");Serial.print(gps.location.lat());
+    //Serial.print(" Lon:");Serial.print(gps.location.lng());
+    //Serial.print(" Alt:");Serial.print(gps.altitude.meters());
+    //Serial.print(" Speed:");Serial.println(gps.speed.kmph());
+
     if (DSB_ACTIVE) {
       // Change the Tx internal based on the current speed
       int curr_speed = (int)gps.speed.kmph();
@@ -424,10 +427,55 @@ void loop() {
     }
   }
 
+
+  // SOS Timeout Beacon without Position
+  uint32_t lastTx = millis() - lastTxTime;
+  if(lastTx > DSOSTIMEOUT && DSOSTIMEOUT > 0){
+    if (getBattStatus() > 0){BatteryIsConnected = true;}
+    batteryVoltage = String(getBattVoltage());
+    APRSMessage msg;
+    String aprsmsg;
+
+    aprsmsg = ">" + DBEACON_MESSAGE;
+
+    if (BatteryIsConnected) {
+        aprsmsg += " - U: " + batteryVoltage + "V";
+    }
+
+    msg.setSource(DCALLSIGN);
+    msg.setDestination("APZASR-1");
+    msg.getAPRSBody()->setData(aprsmsg);
+    String data = msg.encode();
+ 
+    //show_display("<< TX >>", data);
+    if(LORA_RGB) turnOnRGB(COLOR_SEND,0); //change rgb color
+    is_txing = true;
+
+    if (PTT_ACTIVE) {
+      digitalWrite(PTT_IO_PIN, PTT_REVERSE ? LOW : HIGH);
+      delay(PTT_START_DELAY);
+    }
+
+    sprintf(txpacket, "<%c%c%s", (char)(255), (char)(1), data.c_str());
+    Radio.Send( (uint8_t *)txpacket, strlen(txpacket) );
+    Serial.println(txpacket);
+
+    lastTxTime      = millis();
+
+    if (PTT_ACTIVE) {
+      delay(PTT_END_DELAY);
+      digitalWrite(PTT_IO_PIN, PTT_REVERSE ? HIGH : LOW);
+    }
+
+  }
+
+
   if ((EXT_GPS_DATA == false) && (millis() > 5000 && gps.charsProcessed() < 10)) {
     Serial.println("Check your GPS - No GPS Data");
   }
   Radio.IrqProcess();
+
+  Radio.IrqProcess( );
 
   if (sleepMode) {
     lowPowerHandler();
@@ -457,6 +505,8 @@ void setup_lora() {
 
 void setup_gps() {
   gps.begin();
+    gps.begin();
+    //gps.sendcmd("$PMTK886,3*2B\r\n");
 }
 
 void sleep_gps() {
@@ -957,6 +1007,42 @@ void activateProfile(int profileNr) {
     DBEACON_OVERLAY = P2_BEACON_OVERLAY;
     DBEACON_SYMBOL  = P2_BEACON_SYMBOL;
     DCALLSIGN       = P2_CALLSIGN;
+void activateProfile(int profileNr){
+  Serial.print("Activate Profile #: ");Serial.println(profileNr);
+  String GPSMODESTR;
+  switch (profileNr) {
+    case 0:
+      DSB_ACTIVE = SB_ACTIVE;
+      DBEACON_TIMEOUT = BEACON_TIMEOUT;
+      DBEACON_MESSAGE = BEACON_MESSAGE;
+      DBEACON_OVERLAY = BEACON_OVERLAY;
+      DBEACON_SYMBOL = BEACON_SYMBOL;
+      DCALLSIGN = CALLSIGN;
+      DGPSMODE = GPSMODE;
+      DSOSTIMEOUT = SOSTIMEOUT * 1000;
+
+    break;
+    case 1:
+      DSB_ACTIVE = P1_SB_ACTIVE;
+      DBEACON_TIMEOUT = P1_BEACON_TIMEOUT;
+      DBEACON_MESSAGE = P1_BEACON_MESSAGE;
+      DBEACON_OVERLAY = P1_BEACON_OVERLAY;
+      DBEACON_SYMBOL = P1_BEACON_SYMBOL;
+      DCALLSIGN = P1_CALLSIGN;
+      DGPSMODE = P1_GPSMODE;
+      DSOSTIMEOUT = P1_SOSTIMEOUT * 1000;
+
+    break;
+    case 2:
+      DSB_ACTIVE = P2_SB_ACTIVE;
+      DBEACON_TIMEOUT = P2_BEACON_TIMEOUT;
+      DBEACON_MESSAGE = P2_BEACON_MESSAGE;
+      DBEACON_OVERLAY = P2_BEACON_OVERLAY;
+      DBEACON_SYMBOL = P2_BEACON_SYMBOL;
+      DCALLSIGN = P2_CALLSIGN;
+      DGPSMODE = P2_GPSMODE;
+      DSOSTIMEOUT = P2_SOSTIMEOUT * 1000;
+
     break;
   case 3:
     DSB_ACTIVE      = P3_SB_ACTIVE;
@@ -996,4 +1082,7 @@ void telemetry() {
   PRESS = bmp.readPressure();
   // HUMID = bmp.readHumidity();
   delay(500);
+}
+  GPSMODESTR = "$PMTK886,"+String(DGPSMODE)+"*2B\r\n";
+  gps.sendcmd(GPSMODESTR);
 }
