@@ -37,6 +37,7 @@ static String DBEACON_OVERLAY = BEACON_OVERLAY;
 static String DBEACON_MESSAGE = BEACON_MESSAGE;
 static String DCALLSIGN = CALLSIGN;
 static int DGPSMODE = GPSMODE;
+static int DSOSTIMEOUT = SOSTIMEOUT;
 
 static bool send_update = true;
 static bool is_txing = false;
@@ -379,9 +380,53 @@ void loop() {
     }
   }
 
+
+  // SOS Timeout Beacon without Position
+  uint32_t lastTx = millis() - lastTxTime;
+  if(lastTx > DSOSTIMEOUT && DSOSTIMEOUT > 0){
+    if (getBattStatus() > 0){BatteryIsConnected = true;}
+    batteryVoltage = String(getBattVoltage());
+    APRSMessage msg;
+    String aprsmsg;
+
+    aprsmsg = ">" + DBEACON_MESSAGE;
+
+    if (BatteryIsConnected) {
+        aprsmsg += " - U: " + batteryVoltage + "V";
+    }
+
+    msg.setSource(DCALLSIGN);
+    msg.setDestination("APZASR-1");
+    msg.getAPRSBody()->setData(aprsmsg);
+    String data = msg.encode();
+ 
+    //show_display("<< TX >>", data);
+    if(LORA_RGB) turnOnRGB(COLOR_SEND,0); //change rgb color
+    is_txing = true;
+
+    if (PTT_ACTIVE) {
+      digitalWrite(PTT_IO_PIN, PTT_REVERSE ? LOW : HIGH);
+      delay(PTT_START_DELAY);
+    }
+
+    sprintf(txpacket, "<%c%c%s", (char)(255), (char)(1), data.c_str());
+    Radio.Send( (uint8_t *)txpacket, strlen(txpacket) );
+    Serial.println(txpacket);
+
+    lastTxTime      = millis();
+
+    if (PTT_ACTIVE) {
+      delay(PTT_END_DELAY);
+      digitalWrite(PTT_IO_PIN, PTT_REVERSE ? HIGH : LOW);
+    }
+
+  }
+
+
   if ((EXT_GPS_DATA == false) && (millis() > 5000 && gps.charsProcessed() < 10)) {
     Serial.println("Check your GPS - No GPS Data");
   }
+
   Radio.IrqProcess( );
 
   if (sleepMode){
@@ -931,6 +976,8 @@ void activateProfile(int profileNr){
       DBEACON_SYMBOL = BEACON_SYMBOL;
       DCALLSIGN = CALLSIGN;
       DGPSMODE = GPSMODE;
+      DSOSTIMEOUT = SOSTIMEOUT * 1000;
+
     break;
     case 1:
       DSB_ACTIVE = P1_SB_ACTIVE;
@@ -940,6 +987,8 @@ void activateProfile(int profileNr){
       DBEACON_SYMBOL = P1_BEACON_SYMBOL;
       DCALLSIGN = P1_CALLSIGN;
       DGPSMODE = P1_GPSMODE;
+      DSOSTIMEOUT = P1_SOSTIMEOUT * 1000;
+
     break;
     case 2:
       DSB_ACTIVE = P2_SB_ACTIVE;
@@ -949,6 +998,8 @@ void activateProfile(int profileNr){
       DBEACON_SYMBOL = P2_BEACON_SYMBOL;
       DCALLSIGN = P2_CALLSIGN;
       DGPSMODE = P2_GPSMODE;
+      DSOSTIMEOUT = P2_SOSTIMEOUT * 1000;
+
     break;
   }
 

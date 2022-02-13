@@ -19,6 +19,7 @@
 #define BEACON_TIMEOUT  60  // fixed Beacon interval in s if Smartbeacon inactive
 #define CALLSIGN    "N0CALL-7"   // your callsign
 #define GPSMODE     0 // Vehicle mode: For general purpose
+#define SOSTIMEOUT  0 // Send a positionless Status Beacon, when no Position was send for given Time in Seconds. 0 to disable
 
 // Profile 1 - Runner Symbol
 #define P1_BEACON_SYMBOL "["
@@ -28,15 +29,17 @@
 #define P1_BEACON_TIMEOUT  60  // fixed Beacon interval in s if Smartbeacon inactive
 #define P1_CALLSIGN    "N0CALL-8"   // your callsign
 #define P1_GPSMODE  1 //Pedestrian: For running and walking purpose that the low-speed (< 5m/s) movement will have more effect on the position calculation.
+#define P1_SOSTIMEOUT  0 // Send a positionless Status Beacon, when no Position was send for given Time in Seconds. 0 to disable
 
 // Profile 2 - Balloon
 #define P2_BEACON_SYMBOL "O"
 #define P2_BEACON_OVERLAY "/"
 #define P2_BEACON_MESSAGE  "Cubecell LoRa powered Balloon"
 #define P2_SB_ACTIVE   false // smart Beacon
-#define P2_BEACON_TIMEOUT  30  // fixed Beacon interval in s if Smartbeacon inactive
+#define P2_BEACON_TIMEOUT  60  // fixed Beacon interval in s if Smartbeacon inactive
 #define P2_CALLSIGN    "N0CALL-12"   // your callsign
 #define P2_GPSMODE      3 // Balloon mode: For high-altitude balloon purpose that the vertical movement will have more effect on the position calculation.
+#define P2_SOSTIMEOUT  600 // Send a positionless Status Beacon, when no Position was send for given Time in Seconds. 0 to disable
 
 // Global Settings for All Profiles
 // 
