@@ -111,7 +111,7 @@ void setup() {
   show_display("DJ1AN", "CubeCell", "LoRa APRS Tracker", 500);
 
   if (!bmp.begin()) {
-    Serial.println("Could not find a valid BMP085 sensor, check wiring!");
+    Serial.println(F("Could not find a valid BMP085 sensor, check wiring!"));
   } else {
     BMPFOUND = true;
   }
@@ -249,7 +249,7 @@ void loop() {
     String      lng;
     String      dao;
     String      aprsmsg;
-    
+
     msg.setSource(DCALLSIGN);
     msg.setDestination("APZASR-1");
 
@@ -295,29 +295,24 @@ void loop() {
     } else {
       speed_zero_sent = 0;
     }
-    
+
     if (BMPFOUND && WEATHER_DATA) {
       telemetry();
       String TEMPERATURE = String(TEMP);
       String PRESSURE    = String(PRESS);
       // REMOVE LAST CHARACTER FROM PRESSURE
       PRESSURE.remove(PRESSURE.length() - 1); // PRESSURE ON APRS IS ONLY 5 DIGITS
-
       // Uncomment to enable APRS telemetry for sensors with more data.
-
       /// String HUMIDITY = String(HUMID);
       /// String WIND_SPEED    = String(WIND_S);
       /// String WIND_DIRECTION    = String(WIND_DIR);
       /// String RAINX = String(RAIN);
-
       // Using ... notifies APRS that the fields are NULL thus not showing up
       // in the telemetry.
       String HUMIDITY       = "...";
       String WIND_SPEED     = "...";
       String WIND_DIRECTION = "...";
       String RAINX          = "...";
-      
-    
 
       Serial.print("Weather data enabled");
       aprsmsg = "!" + lat + DBEACON_OVERLAY + lng + DBEACON_SYMBOL + WIND_DIRECTION + "/" + WIND_SPEED + "g" + RAINX + "t" + TEMPERATURE + "h" + HUMIDITY + "b" + PRESSURE;
@@ -326,13 +321,13 @@ void loop() {
       // t = temprature
       // h = humidity
       // b = pressure
-    } 
-    
+    }
+
     if (STATIC_BEACON && !WEATHER_DATA) {
       aprsmsg = "!" + DBEACON_LATITUDE + DBEACON_OVERLAY + DBEACON_LONGITUDE + DBEACON_SYMBOL + DBEACON_MESSAGE;
     }
-    
-    if (!STATIC_BEACON && !WEATHER_DATA){
+
+    if (!STATIC_BEACON && !WEATHER_DATA) {
       aprsmsg = "!" + lat + DBEACON_OVERLAY + lng + DBEACON_SYMBOL + course_and_speed + alt;
       // message_text every 10's packet (i.e. if we have beacon rate 1min at high
       // speed -> every 10min). May be enforced above (at expirey of smart beacon
