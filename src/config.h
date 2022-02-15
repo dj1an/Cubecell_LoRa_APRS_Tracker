@@ -6,14 +6,14 @@
 // https://blog.thelifeofkenneth.com/2017/01/aprs-symbol-look-up-table.html
 
 #define DEFAULT_PROFILE 3 // Profile to use after Reboot
-
+String MAIN_CALLSIGN = "NOCALL"; // Your Callsign
 // Profile 0 - Car Symbol
 #define BEACON_SYMBOL ">"
 #define BEACON_OVERLAY "/"
 #define BEACON_MESSAGE  "Cubecell LoRa Tracker"
 #define SB_ACTIVE   true // smart Beacon
 #define BEACON_TIMEOUT  60  // fixed Beacon interval in s if Smartbeacon inactive
-#define CALLSIGN    "DJ1AN-7"   // your callsign
+#define CALLSIGN    MAIN_CALLSIGN + "-7"  // your callsign
 
 // Profile 1 - Runner Symbol
 #define P1_BEACON_SYMBOL "["
@@ -21,7 +21,7 @@
 #define P1_BEACON_MESSAGE  "Running Cubecell LoRa"
 #define P1_SB_ACTIVE   true // smart Beacon
 #define P1_BEACON_TIMEOUT  60  // fixed Beacon interval in s if Smartbeacon inactive
-#define P1_CALLSIGN    "DJ1AN-8"   // your callsign
+#define P1_CALLSIGN    MAIN_CALLSIGN +"-8"   // your callsign
 
 // Profile 2 - Balloon
 #define P2_BEACON_SYMBOL "O"
@@ -29,7 +29,7 @@
 #define P2_BEACON_MESSAGE  "Cubecell LoRa powered Balloon"
 #define P2_SB_ACTIVE   false // smart Beacon
 #define P2_BEACON_TIMEOUT  30  // fixed Beacon interval in s if Smartbeacon inactive
-#define P2_CALLSIGN    "DJ1AN-12"   // your callsign
+#define P2_CALLSIGN    MAIN_CALLSIGN + "-12"   // your callsign
 
 // Profile 3 - WX Station
 #define P3_BEACON_SYMBOL "_"
@@ -37,7 +37,7 @@
 #define P3_BEACON_MESSAGE  "Cubecell LoRa WX Station"
 #define P3_SB_ACTIVE   true // smart Beacon
 #define P3_BEACON_TIMEOUT  60  // fixed Beacon interval in s if Smartbeacon inactive
-#define P3_CALLSIGN    "DJ1AN-13"   // your callsign
+#define P3_CALLSIGN   MAIN_CALLSIGN + "-13"   // your callsign
 
 // Profile 4 - Fixed Station Location (House Symbol)
 #define P4_BEACON_SYMBOL "-"
@@ -47,7 +47,7 @@
 #define BEACON_LONGITUDE  "00820.43E" // your longitude W OR E UP TO 2 DECIMAL PLACES, APRS Notation Degrees°MM.MM 
 #define P4_SB_ACTIVE   false // smart Beacon
 #define P4_BEACON_TIMEOUT  60  // fixed Beacon interval in s if Smartbeacon inactive
-#define P4_CALLSIGN    "DJ1AN-3"   // your callsign
+#define P4_CALLSIGN    MAIN_CALLSIGN + "-3"   // your callsign
 
 
 // Global Settings for All Profiles

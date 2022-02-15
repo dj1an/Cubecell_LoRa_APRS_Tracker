@@ -981,8 +981,6 @@ void activateProfile(int profileNr) {
 }
 
 void telemetry() {
-  
-
   Serial.print("Temperature = ");
   Serial.print(bmp.readTemperature());
   Serial.println(" *C");
