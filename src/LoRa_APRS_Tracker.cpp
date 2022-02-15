@@ -335,8 +335,6 @@ void loop() {
       // static rate 10 -> every third packet)
       if (!(rate_limit_message_text++ % 10)) {
         aprsmsg += DBEACON_MESSAGE;
-        // convert char to string
-
         if (BatteryIsConnected) {
           aprsmsg += " - U: " + batteryVoltage + "V";
         }
