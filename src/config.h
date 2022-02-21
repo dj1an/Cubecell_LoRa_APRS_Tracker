@@ -4,6 +4,10 @@
 //
 // Symbol Lookup Table:
 // https://blog.thelifeofkenneth.com/2017/01/aprs-symbol-look-up-table.html
+//
+// GPS Profile https://cdn.sparkfun.com/assets/parts/1/2/2/8/0/PMTK_Packet_User_Manual.pdf
+// On page 22 and 23
+//
 
 #define DEFAULT_PROFILE 3              // Profile to use after Reboot
 String const MAIN_CALLSIGN = "NOCALL"; // Your Callsign
@@ -23,15 +27,6 @@ String const MAIN_CALLSIGN = "NOCALL"; // Your Callsign
 #define P1_SB_ACTIVE      true                 // smart Beacon
 #define P1_BEACON_TIMEOUT 60                   // fixed Beacon interval in s if Smartbeacon inactive
 #define P1_CALLSIGN       MAIN_CALLSIGN + "-8" // your callsign
-
-// Profile 2 - Balloon
-#define P2_BEACON_SYMBOL  "O"
-#define P2_BEACON_OVERLAY "/"
-#define P2_BEACON_MESSAGE "Cubecell LoRa powered Balloon"
-#define P2_SB_ACTIVE      false                 // smart Beacon
-#define P2_BEACON_TIMEOUT 30                    // fixed Beacon interval in s if Smartbeacon inactive
-#define P2_CALLSIGN       MAIN_CALLSIGN + "-12" // your callsign
-
 // Profile 3 - WX Station
 #define P3_BEACON_SYMBOL  "_"
 #define P3_BEACON_OVERLAY "/"
