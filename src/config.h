@@ -10,7 +10,7 @@
 //
 
 #define DEFAULT_PROFILE 3              // Profile to use after Reboot
-String const MAIN_CALLSIGN = "NOCALL"; // Your Callsign
+String const MAIN_CALLSIGN = "GC0CDF"; // Your Callsign
 
 // Profile 0 - Car Symbol
 #define BEACON_SYMBOL  ">"
@@ -27,8 +27,15 @@ String const MAIN_CALLSIGN = "NOCALL"; // Your Callsign
 #define P1_SB_ACTIVE      true                 // smart Beacon
 #define P1_BEACON_TIMEOUT 60                   // fixed Beacon interval in s if Smartbeacon inactive
 #define P1_CALLSIGN       MAIN_CALLSIGN + "-8" // your callsign
+// Profile 2 - Balloon
+#define P2_BEACON_SYMBOL  "O"
+#define P2_BEACON_OVERLAY "/"
+#define P2_BEACON_MESSAGE "Cubecell LoRa powered Balloon"
+#define P2_SB_ACTIVE      false                 // smart Beacon
+#define P2_BEACON_TIMEOUT 30                    // fixed Beacon interval in s if Smartbeacon inactive
+#define P2_CALLSIGN       MAIN_CALLSIGN + "-12" // your callsign
 // Profile 3 - WX Station
-#define P3_BEACON_SYMBOL  "_"
+#define P3_BEACON_SYMBOL  "\O"
 #define P3_BEACON_OVERLAY "/"
 #define P3_BEACON_MESSAGE "Cubecell LoRa WX Station"
 #define P3_SB_ACTIVE      true                  // smart Beacon
