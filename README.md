@@ -33,7 +33,7 @@ Please feel free to open an issue if you found Bugs.
 The best success is to use PlatformIO (and it is the only platform where I can support you). 
 
 * Go to [PlatformIO](https://platformio.org/) download and install the IDE. 
-* If installed open the IDE, go to the left side and klick on 'extensions' then search for 'PatformIO' and install.
+* If installed open the IDE, go to the left side and click on 'extensions' then search for 'PatformIO' and install.
 * Windows users may have to install [GIT](https://git-scm.com/download/win)
 * When installed click 'the ant head' on the left and choose import the project on the right.
 * Just open the folder and you can compile and upload the Firmware.
@@ -49,3 +49,8 @@ Top Button can be used, the lower Button is hardwired to Device Reset.
 * Button > 1s: Send Position Beacon
 * Button < 1s: Open Menu / Next Menu Item
 * Button > 1s in Menu: Change Setting
+
+## Usage with BMP180
+The HTCC-AB02S can also be used with the BMP180 sensor for Altitude , Humidity and Temperature. Switch to Profile #3 to send data to APRS as a weather station. The sensor can be used with either 5V or 3.3V but since the BMP180 is a 3.3V device with a voltage regulator just use the 3.3v line to conserve power on the board.  
+
+![BMP180](pics/HTCC-AB02S.jpg)
