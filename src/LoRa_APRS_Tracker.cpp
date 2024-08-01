@@ -6,13 +6,17 @@
 #include <APRS-Decoder.h>
 #include <Arduino.h>
 #include <BMP180.h>
+#include <MPU6050.h>
+//#include <BMP280.h>
 #include <TimeLib.h>
-#include <Wire.h>
+//#include <Wire.h>
 
 // initialize the library with the numbers of the interface pins
-char   PRESSURESHOW[4];    // initializing a character of size 4 for showing the  result
-char   TEMPARATURESHOW[4]; // initializing a character of size 4 for showing the temparature result
-BMP085 bmp;
+char    PRESSURESHOW[4];    // initializing a character of size 4 for showing the  result
+char    TEMPARATURESHOW[4]; // initializing a character of size 4 for showing the temparature result
+BMP085  bmp;
+MPU6050 mpu;
+// BMP280 bmp;
 //#include <EEPROM.h>
 Air530ZClass   gps;
 extern uint8_t isDispayOn; // Defined in LoRaWan_APP.cpp
@@ -23,31 +27,31 @@ void sleep_gps();
 void userKey();
 void telemetry();
 
-String        create_lat_aprs(RawDegrees lat);
-String        create_long_aprs(RawDegrees lng);
-String        create_lat_aprs_dao(RawDegrees lat);
-String        create_long_aprs_dao(RawDegrees lng);
-String        create_dao_aprs(RawDegrees lat, RawDegrees lng);
-String        createDateString(time_t t);
-String        createTimeString(time_t t);
-String        getSmartBeaconState();
-String        padding(unsigned int number, unsigned int width);
-int           TEMP, PRESS, HUMID, WIND_S, WIND_DIR, RAIN;
-static bool   STATIC_BEACON, WEATHER_DATA;
-static bool   BMPFOUND           = false;
-static bool   BatteryIsConnected = false;
-static String batteryVoltage     = "";
-static bool   DSB_ACTIVE         = SB_ACTIVE;      // initial Smartbeacon State can be changed via menu
-static int    DBEACON_TIMEOUT    = BEACON_TIMEOUT; // initial Beacon Rate
-static bool   DSCREEN_OFF        = false;          // initial Screen timeout deactivated
-static int    DPROFILE_NR        = DEFAULT_PROFILE;
-static String DBEACON_SYMBOL     = BEACON_SYMBOL;
-static String DBEACON_OVERLAY    = BEACON_OVERLAY;
-static String DBEACON_MESSAGE    = BEACON_MESSAGE;
-static String DCALLSIGN          = CALLSIGN;
-static String DBEACON_LATITUDE   = BEACON_LATITUDE;
-static String DBEACON_LONGITUDE  = BEACON_LONGITUDE;
-
+String               create_lat_aprs(RawDegrees lat);
+String               create_long_aprs(RawDegrees lng);
+String               create_lat_aprs_dao(RawDegrees lat);
+String               create_long_aprs_dao(RawDegrees lng);
+String               create_dao_aprs(RawDegrees lat, RawDegrees lng);
+String               createDateString(time_t t);
+String               createTimeString(time_t t);
+String               getSmartBeaconState();
+String               padding(unsigned int number, unsigned int width);
+int                  TEMP, PRESS, HUMID, WIND_S, WIND_DIR, RAIN;
+static bool          STATIC_BEACON, WEATHER_DATA;
+static bool          BMPFOUND           = false;
+static bool          BatteryIsConnected = false;
+static String        batteryVoltage     = "";
+static bool          DSB_ACTIVE         = SB_ACTIVE;      // initial Smartbeacon State can be changed via menu
+static int           DBEACON_TIMEOUT    = BEACON_TIMEOUT; // initial Beacon Rate
+static bool          DSCREEN_OFF        = false;          // initial Screen timeout deactivated
+static int           DPROFILE_NR        = DEFAULT_PROFILE;
+static String        DBEACON_SYMBOL     = BEACON_SYMBOL;
+static String        DBEACON_OVERLAY    = BEACON_OVERLAY;
+static String        DBEACON_MESSAGE    = BEACON_MESSAGE;
+static String        DCALLSIGN          = CALLSIGN;
+static String        DBEACON_LATITUDE   = BEACON_LATITUDE;
+static String        DBEACON_LONGITUDE  = BEACON_LONGITUDE;
+String               accelerometerx, accelerometery, accelerometerz;
 static bool          send_update = true;
 static bool          is_txing    = false;
 static RadioEvents_t RadioEvents;
@@ -111,7 +115,7 @@ void setup() {
   show_display("DJ1AN", "CubeCell", "LoRa APRS Tracker", 500);
 
   if (!bmp.begin()) {
-    Serial.println("Could not find a valid BMP085 sensor, check wiring!");
+    Serial.println(F("Could not find a valid BMP085 sensor, check wiring!"));
   } else {
     BMPFOUND = true;
   }
@@ -241,7 +245,7 @@ void loop() {
   }
 
   if (send_update && gps_loc_update && gps_loc_valid) {
-    send_update         = false;
+    send_update         = true;
     nextBeaconTimeStamp = now() + (DSB_ACTIVE ? SB_SLOW_RATE : DBEACON_TIMEOUT);
 
     APRSMessage msg;
@@ -249,7 +253,7 @@ void loop() {
     String      lng;
     String      dao;
     String      aprsmsg;
-    
+
     msg.setSource(DCALLSIGN);
     msg.setDestination("APZASR-1");
 
@@ -295,44 +299,44 @@ void loop() {
     } else {
       speed_zero_sent = 0;
     }
-    
+
     if (BMPFOUND && WEATHER_DATA) {
       telemetry();
       String TEMPERATURE = String(TEMP);
       String PRESSURE    = String(PRESS);
       // REMOVE LAST CHARACTER FROM PRESSURE
       PRESSURE.remove(PRESSURE.length() - 1); // PRESSURE ON APRS IS ONLY 5 DIGITS
-
       // Uncomment to enable APRS telemetry for sensors with more data.
-
-      /// String HUMIDITY = String(HUMID);
+      // String HUMIDITY = String(HUMID);
       /// String WIND_SPEED    = String(WIND_S);
       /// String WIND_DIRECTION    = String(WIND_DIR);
       /// String RAINX = String(RAIN);
-
       // Using ... notifies APRS that the fields are NULL thus not showing up
       // in the telemetry.
       String HUMIDITY       = "...";
       String WIND_SPEED     = "...";
       String WIND_DIRECTION = "...";
       String RAINX          = "...";
-      
-    
 
       Serial.print("Weather data enabled");
       aprsmsg = "!" + lat + DBEACON_OVERLAY + lng + DBEACON_SYMBOL + WIND_DIRECTION + "/" + WIND_SPEED + "g" + RAINX + "t" + TEMPERATURE + "h" + HUMIDITY + "b" + PRESSURE;
 
       aprsmsg += DBEACON_MESSAGE;
+      aprsmsg += "ACCX " + accelerometerx;
+      aprsmsg += "ACCY " + accelerometery;
+      aprsmsg += "ACCZ " + accelerometerz;
+
       // t = temprature
       // h = humidity
       // b = pressure
-    } 
-    
+      // alt = gps.altitude.meters();
+    }
+
     if (STATIC_BEACON && !WEATHER_DATA) {
       aprsmsg = "!" + DBEACON_LATITUDE + DBEACON_OVERLAY + DBEACON_LONGITUDE + DBEACON_SYMBOL + DBEACON_MESSAGE;
     }
-    
-    if (!STATIC_BEACON && !WEATHER_DATA){
+
+    if (!STATIC_BEACON && !WEATHER_DATA) {
       aprsmsg = "!" + lat + DBEACON_OVERLAY + lng + DBEACON_SYMBOL + course_and_speed + alt;
       // message_text every 10's packet (i.e. if we have beacon rate 1min at high
       // speed -> every 10min). May be enforced above (at expirey of smart beacon
@@ -340,8 +344,6 @@ void loop() {
       // static rate 10 -> every third packet)
       if (!(rate_limit_message_text++ % 10)) {
         aprsmsg += DBEACON_MESSAGE;
-        // convert char to string
-
         if (BatteryIsConnected) {
           aprsmsg += " - U: " + batteryVoltage + "V";
         }
@@ -981,8 +983,6 @@ void activateProfile(int profileNr) {
 }
 
 void telemetry() {
-  
-
   Serial.print("Temperature = ");
   Serial.print(bmp.readTemperature());
   Serial.println(" *C");
@@ -993,7 +993,10 @@ void telemetry() {
   Serial.print("Pressure = ");
   Serial.print(bmp.readPressure());
   Serial.println(" Pa");
-  PRESS = bmp.readPressure();
-  // HUMID = bmp.readHumidity();
-  delay(500);
+  PRESS          = bmp.readPressure();
+  accelerometerx = mpu.getAccelerationX();
+  accelerometery = mpu.getAccelerationY();
+  accelerometerz = mpu.getAccelerationZ();
+
+  // delay(500);
 }
