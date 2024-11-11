@@ -1,59 +1,46 @@
 
-#include "GPS_Air530Z.h"
+#include <Arduino.h>
 #include "LoRaWan_APP.h"
+#include "GPS_Air530Z.h"
 #include "config.h"
+#include <TimeLib.h>
 #include "display.h"
 #include <APRS-Decoder.h>
-#include <Arduino.h>
-#include <BMP180.h>
-#include <MPU6050.h>
-//#include <BMP280.h>
-#include <TimeLib.h>
-//#include <Wire.h>
-
-// initialize the library with the numbers of the interface pins
-char    PRESSURESHOW[4];    // initializing a character of size 4 for showing the  result
-char    TEMPARATURESHOW[4]; // initializing a character of size 4 for showing the temparature result
-BMP085  bmp;
-MPU6050 mpu;
-// BMP280 bmp;
 //#include <EEPROM.h>
-Air530ZClass   gps;
-extern uint8_t isDispayOn; // Defined in LoRaWan_APP.cpp
+
+Air530ZClass                  gps;
+extern uint8_t                isDispayOn; // Defined in LoRaWan_APP.cpp
 
 void setup_lora();
 void setup_gps();
 void sleep_gps();
 void userKey();
-void telemetry();
 
-String               create_lat_aprs(RawDegrees lat);
-String               create_long_aprs(RawDegrees lng);
-String               create_lat_aprs_dao(RawDegrees lat);
-String               create_long_aprs_dao(RawDegrees lng);
-String               create_dao_aprs(RawDegrees lat, RawDegrees lng);
-String               createDateString(time_t t);
-String               createTimeString(time_t t);
-String               getSmartBeaconState();
-String               padding(unsigned int number, unsigned int width);
-int                  TEMP, PRESS, HUMID, WIND_S, WIND_DIR, RAIN;
-static bool          STATIC_BEACON, WEATHER_DATA;
-static bool          BMPFOUND           = false;
-static bool          BatteryIsConnected = false;
-static String        batteryVoltage     = "";
-static bool          DSB_ACTIVE         = SB_ACTIVE;      // initial Smartbeacon State can be changed via menu
-static int           DBEACON_TIMEOUT    = BEACON_TIMEOUT; // initial Beacon Rate
-static bool          DSCREEN_OFF        = false;          // initial Screen timeout deactivated
-static int           DPROFILE_NR        = DEFAULT_PROFILE;
-static String        DBEACON_SYMBOL     = BEACON_SYMBOL;
-static String        DBEACON_OVERLAY    = BEACON_OVERLAY;
-static String        DBEACON_MESSAGE    = BEACON_MESSAGE;
-static String        DCALLSIGN          = CALLSIGN;
-static String        DBEACON_LATITUDE   = BEACON_LATITUDE;
-static String        DBEACON_LONGITUDE  = BEACON_LONGITUDE;
-String               accelerometerx, accelerometery, accelerometerz;
-static bool          send_update = true;
-static bool          is_txing    = false;
+String create_lat_aprs(RawDegrees lat);
+String create_long_aprs(RawDegrees lng);
+String create_lat_aprs_dao(RawDegrees lat);
+String create_long_aprs_dao(RawDegrees lng);
+String create_dao_aprs(RawDegrees lat, RawDegrees lng);
+String createDateString(time_t t);
+String createTimeString(time_t t);
+String getSmartBeaconState();
+String padding(unsigned int number, unsigned int width);
+
+static bool   BatteryIsConnected   = false;
+static String batteryVoltage       = "";
+static bool DSB_ACTIVE = SB_ACTIVE; // initial Smartbeacon State can be changed via menu
+static int DBEACON_TIMEOUT = BEACON_TIMEOUT; // initial Beacon Rate
+static bool DSCREEN_OFF = false; // initial Screen timeout deactivated
+static int DPROFILE_NR = DEFAULT_PROFILE;
+static String DBEACON_SYMBOL = BEACON_SYMBOL;
+static String DBEACON_OVERLAY = BEACON_OVERLAY;
+static String DBEACON_MESSAGE = BEACON_MESSAGE;
+static String DCALLSIGN = CALLSIGN;
+static int DGPSMODE = GPSMODE;
+static int DSOSTIMEOUT = SOSTIMEOUT;
+
+static bool send_update = true;
+static bool is_txing = false;
 static RadioEvents_t RadioEvents;
 
 int16_t txNumber;
@@ -65,7 +52,7 @@ char rxpacket[BUFFER_SIZE];
 
 #define MENU_CNT 8
 
-char *menu[MENU_CNT] = {"Screen OFF", "Sleep", "Send now", "Faster Upd", "Slower Upd", "Tracker mode", "Profile", "Exit"}; //"Reset GPS", "Bat V/%"
+char* menu[MENU_CNT] = {"Screen OFF", "Sleep", "Send now", "Faster Upd", "Slower Upd", "Tracker mode", "Profile", "Exit"}; //"Reset GPS", "Bat V/%"
 
 enum eMenuEntries
 {
@@ -77,48 +64,46 @@ enum eMenuEntries
   TRACKER_MODE,
   PROFILE,
   EXITM
-  // RESET_GPS,
-  // BAT_V_PCT
+  //RESET_GPS,
+  //BAT_V_PCT
 };
-int  currentMenu   = 0;
-bool menuMode      = false;
-bool sleepMode     = false;
-bool displayBatPct = false; // Change here if you want to see the battery as percent vs voltage (not recommended because it is inacurate unless you go edit some min and max voltage values in the base libraries with values specific to your battery)
-bool screenOffMode = false; // Enable normal operation with the screen off - for more battery saving
+int       currentMenu             = 0;
+bool      menuMode                = false;
+bool      sleepMode               = false;
+bool      displayBatPct           = false; // Change here if you want to see the battery as percent vs voltage (not recommended because it is inacurate unless you go edit some min and max voltage values in the base libraries with values specific to your battery)
+bool      screenOffMode           = false; // Enable normal operation with the screen off - for more battery saving
 
-void                displayMenu();
-void                executeMenu(void);
+void displayMenu();
+void executeMenu(void); 
 static TimerEvent_t menuIdleTimeout;
-static void         OnMenuIdleTimeout();
+static void OnMenuIdleTimeout();
 static TimerEvent_t displayIdleTimeout;
-static void         OnDisplayIdleTimeout();
-void                switchModeToSleep();
-void                VextON(void);
-void                VextOFF(void);
-void                OnTxDone(void);
-void                OnTxTimeout(void);
-float               getBattVoltage();
-uint8_t             getBattStatus();
-void                switchScrenOffMode();
-void                switchScrenOnMode();
-void                activateProfile(int profileNr);
-// int address = 0;
-// byte value;
-//  cppcheck-suppress unusedFunction
+static void OnDisplayIdleTimeout();
+void switchModeToSleep();
+void VextON(void);
+void VextOFF(void);
+void OnTxDone( void );
+void OnTxTimeout( void );
+float getBattVoltage();
+uint8_t getBattStatus();
+void switchScrenOffMode();
+void switchScrenOnMode();
+void activateProfile(int profileNr);
+
+//int address = 0;
+//byte value;
+
+// cppcheck-suppress unusedFunction
 void setup() {
   boardInitMcu();
   Serial.begin(115200);
+
   delay(500);
   Serial.println("CubeCell LoRa APRS Tracker, DJ1AN");
   setup_display();
-  VextON(); // activate RGB Pixel
+  VextON(); //activate RGB Pixel
   show_display("DJ1AN", "CubeCell", "LoRa APRS Tracker", 500);
-
-  if (!bmp.begin()) {
-    Serial.println(F("Could not find a valid BMP085 sensor, check wiring!"));
-  } else {
-    BMPFOUND = true;
-  }
+ 
 
   setup_gps();
   setup_lora();
@@ -128,9 +113,10 @@ void setup() {
     digitalWrite(PTT_IO_PIN, PTT_REVERSE ? HIGH : LOW);
   }
 
+
   if (BEACON_BUTTON_TX) {
-    pinMode(USER_KEY, INPUT);
-    attachInterrupt(USER_KEY, userKey, FALLING);
+   pinMode(USER_KEY, INPUT);
+   attachInterrupt(USER_KEY, userKey, FALLING);  
   }
 
   TimerInit(&menuIdleTimeout, OnMenuIdleTimeout);
@@ -143,29 +129,27 @@ void setup() {
   Serial.println("Setup done.");
   show_display("INFO", "Init done", "Waiting for GPS", 500);
 
-  if (getBattStatus() > 0) {
-    BatteryIsConnected = true;
-  }
+  if (getBattStatus() > 0){BatteryIsConnected = true;}
   batteryVoltage = String(getBattVoltage());
-  // EEPROM.begin(512);
+  //EEPROM.begin(512);
 }
 
 // cppcheck-suppress unusedFunction
 void loop() {
-  // userButton.tick();
+  //userButton.tick();
 
-  // value = EEPROM.read(address);
+  //value = EEPROM.read(address);
 
-  // Serial.print(address);
-  // Serial.print("\t");
-  // Serial.print(value, DEC);
-  // Serial.println();
-  //  advance to the next address of the EEPROM
-  // address = address + 1;
+  //Serial.print(address);
+  //Serial.print("\t");
+  //Serial.print(value, DEC);
+  //Serial.println();
+  // advance to the next address of the EEPROM
+  //address = address + 1;
 
   // there are only 512 bytes of EEPROM, from 0 to 511, so if we're
   // on address 512, wrap around to address 0
-  // if (address == 512) {
+  //if (address == 512) {
   //  address = 0;
   //}
 
@@ -219,7 +203,10 @@ void loop() {
   static uint32_t lastTxTime      = millis();
   static int      speed_zero_sent = 0;
 
-  if (!send_update && gps_loc_update && DSB_ACTIVE && gps_loc_valid) {
+
+
+
+  if (!send_update && gps_loc_update && DSB_ACTIVE && gps_loc_valid ) {
     uint32_t lastTx = millis() - lastTxTime;
     currentHeading  = gps.course.deg();
     lastTxdistance  = TinyGPSPlus::distanceBetween(gps.location.lat(), gps.location.lng(), lastTxLat, lastTxLng);
@@ -245,14 +232,13 @@ void loop() {
   }
 
   if (send_update && gps_loc_update && gps_loc_valid) {
-    send_update         = true;
-    nextBeaconTimeStamp = now() + (DSB_ACTIVE ? SB_SLOW_RATE : DBEACON_TIMEOUT);
+    send_update         = false;
+    nextBeaconTimeStamp = now() + (DSB_ACTIVE ? SB_SLOW_RATE : DBEACON_TIMEOUT );
 
     APRSMessage msg;
     String      lat;
     String      lng;
     String      dao;
-    String      aprsmsg;
 
     msg.setSource(DCALLSIGN);
     msg.setDestination("APZASR-1");
@@ -300,71 +286,29 @@ void loop() {
       speed_zero_sent = 0;
     }
 
-    if (BMPFOUND && WEATHER_DATA) {
-      telemetry();
-      String TEMPERATURE = String(TEMP);
-      String PRESSURE    = String(PRESS);
-      // REMOVE LAST CHARACTER FROM PRESSURE
-      PRESSURE.remove(PRESSURE.length() - 1); // PRESSURE ON APRS IS ONLY 5 DIGITS
-      // Uncomment to enable APRS telemetry for sensors with more data.
-      // String HUMIDITY = String(HUMID);
-      /// String WIND_SPEED    = String(WIND_S);
-      /// String WIND_DIRECTION    = String(WIND_DIR);
-      /// String RAINX = String(RAIN);
-      // Using ... notifies APRS that the fields are NULL thus not showing up
-      // in the telemetry.
-      String HUMIDITY       = "...";
-      String WIND_SPEED     = "...";
-      String WIND_DIRECTION = "...";
-      String RAINX          = "...";
-
-      Serial.print("Weather data enabled");
-      aprsmsg = "!" + lat + DBEACON_OVERLAY + lng + DBEACON_SYMBOL + WIND_DIRECTION + "/" + WIND_SPEED + "g" + RAINX + "t" + TEMPERATURE + "h" + HUMIDITY + "b" + PRESSURE;
-
+    String aprsmsg;
+    aprsmsg = "!" + lat + DBEACON_OVERLAY + lng + DBEACON_SYMBOL + course_and_speed + alt;
+    // message_text every 10's packet (i.e. if we have beacon rate 1min at high
+    // speed -> every 10min). May be enforced above (at expirey of smart beacon
+    // rate (i.e. every 30min), or every third packet on static rate (i.e.
+    // static rate 10 -> every third packet)
+    if (!(rate_limit_message_text++ % 10)) {
       aprsmsg += DBEACON_MESSAGE;
-      aprsmsg += "ACCX " + accelerometerx;
-      aprsmsg += "ACCY " + accelerometery;
-      aprsmsg += "ACCZ " + accelerometerz;
-
-      // t = temprature
-      // h = humidity
-      // b = pressure
-      // alt = gps.altitude.meters();
-    }
-
-    if (STATIC_BEACON && !WEATHER_DATA) {
-      aprsmsg = "!" + DBEACON_LATITUDE + DBEACON_OVERLAY + DBEACON_LONGITUDE + DBEACON_SYMBOL + DBEACON_MESSAGE;
-    }
-
-    if (!STATIC_BEACON && !WEATHER_DATA) {
-      aprsmsg = "!" + lat + DBEACON_OVERLAY + lng + DBEACON_SYMBOL + course_and_speed + alt;
-      // message_text every 10's packet (i.e. if we have beacon rate 1min at high
-      // speed -> every 10min). May be enforced above (at expirey of smart beacon
-      // rate (i.e. every 30min), or every third packet on static rate (i.e.
-      // static rate 10 -> every third packet)
-      if (!(rate_limit_message_text++ % 10)) {
-        aprsmsg += DBEACON_MESSAGE;
-        if (BatteryIsConnected) {
-          aprsmsg += " - U: " + batteryVoltage + "V";
-        }
-      }
-
-      if (ENHANCE_PRECISION) {
-        aprsmsg += " " + dao;
-        // aprsmsg += " ";
-        // aprsmsg += TEMPERATURE;
-        // aprsmsg += "C ";
-        // aprsmsg += PRESSURE;
-        // aprsmsg += "Pa";
+    
+      if (BatteryIsConnected) {
+        aprsmsg += " - U: " + batteryVoltage + "V";
       }
     }
 
+    if (ENHANCE_PRECISION) {
+      aprsmsg += " " + dao;
+    }
+    
     msg.getAPRSBody()->setData(aprsmsg);
     String data = msg.encode();
-
-    // show_display("<< TX >>", data);
-    if (LORA_RGB)
-      turnOnRGB(COLOR_SEND, 0); // change rgb color
+ 
+    //show_display("<< TX >>", data);
+    if(LORA_RGB) turnOnRGB(COLOR_SEND,0); //change rgb color
     is_txing = true;
 
     if (PTT_ACTIVE) {
@@ -373,7 +317,7 @@ void loop() {
     }
 
     sprintf(txpacket, "<%c%c%s", (char)(255), (char)(1), data.c_str());
-    Radio.Send((uint8_t *)txpacket, strlen(txpacket));
+    Radio.Send( (uint8_t *)txpacket, strlen(txpacket) );
     Serial.println(txpacket);
 
     if (DSB_ACTIVE) {
@@ -392,16 +336,26 @@ void loop() {
 
   if (gps_time_update) {
 
-    if (getBattStatus() > 0) {
-      BatteryIsConnected = true;
-    }
+    if (getBattStatus() > 0){BatteryIsConnected = true;}
     batteryVoltage = String(getBattVoltage());
 
-    if (!menuMode && !screenOffMode) {
+    if(!menuMode && !screenOffMode){
+      
+      //show_display(CALLSIGN + String("") , (is_txing ? "TX" : ""), 
+      show_display(DCALLSIGN + String("") , is_txing, 
+        createDateString(now()) + " " + createTimeString(now()), 
+        String("Sats: ") + gps.satellites.value() + " HDOP: " + gps.hdop.hdop(), 
+        String("Nxt Bcn: ") + (DSB_ACTIVE ? "~" : "") + createTimeString(nextBeaconTimeStamp), 
+        BatteryIsConnected ? (String("Bat: ") + batteryVoltage + "V") : "Powered via USB", 
+        String("Smart Beacon: " + getSmartBeaconState()));
 
-      // show_display(CALLSIGN + String("") , (is_txing ? "TX" : ""),
-      show_display(DCALLSIGN + String(""), is_txing, createDateString(now()) + " " + createTimeString(now()), String("Sats: ") + gps.satellites.value() + " HDOP: " + gps.hdop.hdop(), String("Nxt Bcn: ") + (DSB_ACTIVE ? "~" : "") + createTimeString(nextBeaconTimeStamp), BatteryIsConnected ? (String("Bat: ") + batteryVoltage + "V") : "Powered via USB", String("Smart Beacon: " + getSmartBeaconState()));
     }
+
+    //Serial.print("Sats:");Serial.print(gps.satellites.value());
+    //Serial.print(" Lat:");Serial.print(gps.location.lat());
+    //Serial.print(" Lon:");Serial.print(gps.location.lng());
+    //Serial.print(" Alt:");Serial.print(gps.altitude.meters());
+    //Serial.print(" Speed:");Serial.println(gps.speed.kmph());
 
     if (DSB_ACTIVE) {
       // Change the Tx internal based on the current speed
@@ -426,43 +380,96 @@ void loop() {
     }
   }
 
+
+  // SOS Timeout Beacon without Position
+  uint32_t lastTx = millis() - lastTxTime;
+  if(lastTx > DSOSTIMEOUT && DSOSTIMEOUT > 0){
+    if (getBattStatus() > 0){BatteryIsConnected = true;}
+    batteryVoltage = String(getBattVoltage());
+    APRSMessage msg;
+    String aprsmsg;
+
+    aprsmsg = ">" + DBEACON_MESSAGE;
+
+    if (BatteryIsConnected) {
+        aprsmsg += " - U: " + batteryVoltage + "V";
+    }
+
+    msg.setSource(DCALLSIGN);
+    msg.setDestination("APZASR-1");
+    msg.getAPRSBody()->setData(aprsmsg);
+    String data = msg.encode();
+ 
+    //show_display("<< TX >>", data);
+    if(LORA_RGB) turnOnRGB(COLOR_SEND,0); //change rgb color
+    is_txing = true;
+
+    if (PTT_ACTIVE) {
+      digitalWrite(PTT_IO_PIN, PTT_REVERSE ? LOW : HIGH);
+      delay(PTT_START_DELAY);
+    }
+
+    sprintf(txpacket, "<%c%c%s", (char)(255), (char)(1), data.c_str());
+    Radio.Send( (uint8_t *)txpacket, strlen(txpacket) );
+    Serial.println(txpacket);
+
+    lastTxTime      = millis();
+
+    if (PTT_ACTIVE) {
+      delay(PTT_END_DELAY);
+      digitalWrite(PTT_IO_PIN, PTT_REVERSE ? HIGH : LOW);
+    }
+
+  }
+
+
   if ((EXT_GPS_DATA == false) && (millis() > 5000 && gps.charsProcessed() < 10)) {
     Serial.println("Check your GPS - No GPS Data");
   }
-  Radio.IrqProcess();
 
-  if (sleepMode) {
+  Radio.IrqProcess( );
+
+  if (sleepMode){
     lowPowerHandler();
   }
 }
 
+
+
 void setup_lora() {
 
-  txNumber = 0;
-  rssi     = 0;
-  snr      = 0;
-
-  RadioEvents.TxDone    = OnTxDone;
+  txNumber=0;
+  rssi=0;
+  snr=0;
+  
+  RadioEvents.TxDone = OnTxDone;
   RadioEvents.TxTimeout = OnTxTimeout;
-  // RadioEvents.RxDone = OnRxDone;
+  //RadioEvents.RxDone = OnRxDone;
+  
+  Radio.Init( &RadioEvents );
+  Radio.SetChannel( RF_FREQUENCY );
 
-  Radio.Init(&RadioEvents);
-  Radio.SetChannel(RF_FREQUENCY);
+  Radio.SetTxConfig( MODEM_LORA, TX_OUTPUT_POWER, 0, LORA_BANDWIDTH,
+                                  LORA_SPREADING_FACTOR, LORA_CODINGRATE,
+                                  LORA_PREAMBLE_LENGTH, LORA_FIX_LENGTH_PAYLOAD_ON,
+                                  true, 0, 0, LORA_IQ_INVERSION_ON, 5000 );
 
-  Radio.SetTxConfig(MODEM_LORA, TX_OUTPUT_POWER, 0, LORA_BANDWIDTH, LORA_SPREADING_FACTOR, LORA_CODINGRATE, LORA_PREAMBLE_LENGTH, LORA_FIX_LENGTH_PAYLOAD_ON, true, 0, 0, LORA_IQ_INVERSION_ON, 5000);
-
-  Radio.SetRxConfig(MODEM_LORA, LORA_BANDWIDTH, LORA_SPREADING_FACTOR, LORA_CODINGRATE, 0, LORA_PREAMBLE_LENGTH, LORA_SYMBOL_TIMEOUT, LORA_FIX_LENGTH_PAYLOAD_ON, 0, true, 0, 0, LORA_IQ_INVERSION_ON, true);
-
+  Radio.SetRxConfig( MODEM_LORA, LORA_BANDWIDTH, LORA_SPREADING_FACTOR,
+                                  LORA_CODINGRATE, 0, LORA_PREAMBLE_LENGTH,
+                                  LORA_SYMBOL_TIMEOUT, LORA_FIX_LENGTH_PAYLOAD_ON,
+                                  0, true, 0, 0, LORA_IQ_INVERSION_ON, true );
+  
   show_display("INFO", "LoRa init done!", 500);
   Serial.println("Lora init Done.");
 }
 
 void setup_gps() {
-  gps.begin();
+    gps.begin();
+    //gps.sendcmd("$PMTK886,3*2B\r\n");
 }
 
 void sleep_gps() {
-  gps.end();
+    gps.end();
 }
 
 char *s_min_nn(uint32_t min_nnnnn, int high_precision) {
@@ -590,206 +597,219 @@ String padding(unsigned int number, unsigned int width) {
   return result;
 }
 
-void OnTxDone(void) {
-  // Serial.print("TX done!");
-  // Radio.Sleep( );
-  if (LORA_RGB)
-    turnOnRGB(0, 0);
+void OnTxDone( void )
+{
+  //Serial.print("TX done!");
+  //Radio.Sleep( );
+  if(LORA_RGB) turnOnRGB(0,0);
   is_txing = false;
 }
 
-void OnTxTimeout(void) {
-  Radio.Sleep();
-  // Serial.println("TX Timeout......");
-  if (LORA_RGB)
-    turnOnRGB(0, 0);
-  is_txing = false;
+void OnTxTimeout( void )
+{
+    Radio.Sleep( );
+    //Serial.println("TX Timeout......");
+    if(LORA_RGB) turnOnRGB(0,0);
+    is_txing = false;
 }
 
-void userKey(void) {
+void userKey(void)
+{
   delay(10);
   uint16_t keyDownTime = 0;
-  while (digitalRead(USER_KEY) == LOW) {
-    // Serial.println(digitalRead(USER_KEY));
+  while( digitalRead(USER_KEY) == LOW){
+    //Serial.println(digitalRead(USER_KEY));
     keyDownTime++;
     delay(1);
-    if (keyDownTime >= 1000) {
-      if (menuMode) {
-        // Serial.println("Button >1000 in menu");
+    if (keyDownTime >= 1000){
+      if (menuMode){
+        //Serial.println("Button >1000 in menu");
         executeMenu();
-
+        
         break;
       } else {
-        // Serial.println("Button >1000 outside menu");
+        //Serial.println("Button >1000 outside menu");
         send_update = true;
         break;
       }
     }
   }
 
-  if (keyDownTime < 700) {
-    // Serial.println("Button <700");
-    // send_update = true;
-    // displayMenu();
-    // menuMode = true;
-    // if (sleepMode)
-    //{
-    if (screenOffMode) {
-      screenOffMode = false;
-      VextON();
-      setup_display();
-      //  display.init();
-      isDispayOn = 1;
-      TimerSetValue(&displayIdleTimeout, DISPLAY_IDLE_TIMEOUT);
-      TimerStart(&displayIdleTimeout);
-
-    }
-    // switchModeOutOfSleep();
-    //}
-    // else if (screenOffMode)
-    //{
-    //  switchScreenOnMode();
-    //}
-    // else
-    //{
-    else if (menuMode) {
-      currentMenu++;
-      if (currentMenu >= MENU_CNT) {
-        currentMenu = 0;
-      }
-      displayMenu();
-    } else {
-      menuMode    = true;
-      currentMenu = 0;
-      displayMenu();
-      //  deviceState = DEVICE_STATE_SLEEP;
-    }
-    TimerSetValue(&menuIdleTimeout, MENU_IDLE_TIMEOUT);
-    TimerStart(&menuIdleTimeout);
-    // Serial.println("Menu timeout start");
-    //}
+  if (keyDownTime < 700){
+    //Serial.println("Button <700");
+    //send_update = true;
+    //displayMenu();
+    //menuMode = true;
+      //if (sleepMode)
+      //{        
+        if (screenOffMode)
+        {
+          screenOffMode = false;  
+          VextON();
+          setup_display();
+        //  display.init();
+          isDispayOn = 1;
+          TimerSetValue(&displayIdleTimeout, DISPLAY_IDLE_TIMEOUT);
+          TimerStart(&displayIdleTimeout);
+          
+        }
+        //switchModeOutOfSleep();
+      //}
+      //else if (screenOffMode)
+      //{
+      //  switchScreenOnMode();
+      //}
+      //else
+      //{
+        else if (menuMode)
+        {
+          currentMenu++;
+          if (currentMenu >= MENU_CNT)
+          {
+            currentMenu = 0;
+          }
+          displayMenu();
+        }
+        else
+        {
+          menuMode = true;
+          currentMenu = 0;
+          displayMenu();
+        //  deviceState = DEVICE_STATE_SLEEP;
+        }        
+        TimerSetValue(&menuIdleTimeout, MENU_IDLE_TIMEOUT);
+        TimerStart(&menuIdleTimeout);
+        //Serial.println("Menu timeout start");
+      //}
   } else {
-    // keydown > 700
-    if (menuMode) {
+      // keydown > 700
+    if (menuMode){
       TimerSetValue(&menuIdleTimeout, MENU_IDLE_TIMEOUT);
       TimerStart(&menuIdleTimeout);
-      // Serial.println("Menu timeout start");
+      //Serial.println("Menu timeout start");
     }
   }
+  
 }
 
-void displayMenu() {
+void displayMenu()
+{
 
   String currentOption = menu[currentMenu];
   String currentValue;
   String currentValue2;
   currentOption.toUpperCase();
-  switch (currentMenu) {
-  case SCREEN_OFF:
-    currentValue  = DSCREEN_OFF ? "Active" : "Inactive";
-    currentValue2 = DSCREEN_OFF ? "Display Timeout: " + String(DISPLAY_IDLE_TIMEOUT / 1000) + "s" : "Display Always On";
+  switch (currentMenu)
+  {
+    case SCREEN_OFF:
+      currentValue = DSCREEN_OFF ? "Active" : "Inactive";
+      currentValue2 = DSCREEN_OFF ? "Display Timeout: " + String(DISPLAY_IDLE_TIMEOUT / 1000 ) + "s" : "Display Always On";
     break;
-  case FASTER_UPD:
-    currentValue  = "Fixed Rate: " + String(DBEACON_TIMEOUT) + "s";
-    currentValue2 = DSB_ACTIVE ? "When SmartBeacon is OFF" : "";
+    case FASTER_UPD:
+      currentValue = "Fixed Rate: " + String(DBEACON_TIMEOUT) + "s";
+      currentValue2 = DSB_ACTIVE ? "When SmartBeacon is OFF": "";
     break;
-  case SLOWER_UPD:
-    currentValue  = "Fixed Rate: " + String(DBEACON_TIMEOUT) + "s";
-    currentValue2 = DSB_ACTIVE ? "When SmartBeacon is OFF" : "";
+    case SLOWER_UPD:
+      currentValue = "Fixed Rate: " + String(DBEACON_TIMEOUT) + "s";
+      currentValue2 = DSB_ACTIVE ? "When SmartBeacon is OFF" : "";
     break;
-  case TRACKER_MODE:
-    currentValue  = DSB_ACTIVE ? "SmartBeacon: Active" : "SmartBeacon: Inactive";
-    currentValue2 = DSB_ACTIVE ? "Dynamic Beaconing" : "Fixed Beacon: " + String(DBEACON_TIMEOUT) + "s";
+    case TRACKER_MODE:
+      currentValue = DSB_ACTIVE ? "SmartBeacon: Active" : "SmartBeacon: Inactive";
+      currentValue2 = DSB_ACTIVE ? "Dynamic Beaconing" : "Fixed Beacon: " + String(DBEACON_TIMEOUT)+ "s";
     break;
-  case SLEEP:
-    currentValue2 = "Go to Sleep Now";
+    case SLEEP:
+      currentValue2 = "Go to Sleep Now";
     break;
-  case SEND_NOW:
-    currentValue2 = "Send Beacon Now";
+    case SEND_NOW:
+      currentValue2 = "Send Beacon Now";
     break;
-  case PROFILE:
-    currentValue  = "Profile " + String(DPROFILE_NR) + ": " + DCALLSIGN;
-    currentValue2 = DBEACON_MESSAGE;
+    case PROFILE:
+      currentValue = "Profile " + String(DPROFILE_NR) + ": " + DCALLSIGN;
+      currentValue2 = DBEACON_MESSAGE;
     break;
   }
 
-  show_display_menu("Menu            " + String(currentMenu + 1) + "/" + String(MENU_CNT), "", currentOption, currentValue, currentValue2);
+  show_display_menu("Menu            "+String(currentMenu+1)+"/"+String(MENU_CNT), "", currentOption, currentValue, currentValue2);
 }
 
-void executeMenu(void) {
+
+void executeMenu(void)
+{
   TimerStop(&menuIdleTimeout);
+  
+  switch (currentMenu)
+  {
+    case SCREEN_OFF:
+      if (DSCREEN_OFF){
+        DSCREEN_OFF = false;
+        TimerStop(&displayIdleTimeout);
+        //menuMode = false;
+        displayMenu();
+      } else {
+        //switchScrenOffMode();
+        TimerSetValue(&displayIdleTimeout, DISPLAY_IDLE_TIMEOUT);
+        TimerStart(&displayIdleTimeout);
+        //menuMode = false;
+        DSCREEN_OFF = true;
+        displayMenu();
+      }
+      break;
 
-  switch (currentMenu) {
-  case SCREEN_OFF:
-    if (DSCREEN_OFF) {
-      DSCREEN_OFF = false;
-      TimerStop(&displayIdleTimeout);
-      // menuMode = false;
+    case SLEEP:
+      //sleepActivatedFromMenu = true;
+      switchModeToSleep();
+      menuMode = false;
+      break;
+
+    case SEND_NOW:
+      //deviceState = DEVICE_STATE_SEND;
+      send_update = true;
+      menuMode = false;
+      break;
+
+    case FASTER_UPD:
+      if (DBEACON_TIMEOUT > 10)
+      {
+        DBEACON_TIMEOUT -= 10;
+      }
       displayMenu();
-    } else {
-      // switchScrenOffMode();
-      TimerSetValue(&displayIdleTimeout, DISPLAY_IDLE_TIMEOUT);
-      TimerStart(&displayIdleTimeout);
-      // menuMode = false;
-      DSCREEN_OFF = true;
+      //menuMode = false;
+      break;
+
+    case SLOWER_UPD:
+      DBEACON_TIMEOUT += 10;
       displayMenu();
-    }
-    break;
+      //menuMode = false;
+      break;
 
-  case SLEEP:
-    // sleepActivatedFromMenu = true;
-    switchModeToSleep();
-    menuMode = false;
-    break;
+    case TRACKER_MODE:
+      //trackerMode = !trackerMode;
+      DSB_ACTIVE = !DSB_ACTIVE;
+      //DSB_ACTIVE = true;
+      //menuMode = false;
+      send_update = true;
+      displayMenu();
+      break;
 
-  case SEND_NOW:
-    // deviceState = DEVICE_STATE_SEND;
-    send_update = true;
-    menuMode    = false;
-    break;
+    case PROFILE:
+      DPROFILE_NR += 1;
+      if (DPROFILE_NR > 2){
+        DPROFILE_NR = 0;
+      }
+      activateProfile(DPROFILE_NR);
+      displayMenu();
+      break;
 
-  case FASTER_UPD:
-    if (DBEACON_TIMEOUT > 10) {
-      DBEACON_TIMEOUT -= 10;
-    }
-    displayMenu();
-    // menuMode = false;
-    break;
-
-  case SLOWER_UPD:
-    DBEACON_TIMEOUT += 10;
-    displayMenu();
-    // menuMode = false;
-    break;
-
-  case TRACKER_MODE:
-    // trackerMode = !trackerMode;
-    DSB_ACTIVE = !DSB_ACTIVE;
-    // DSB_ACTIVE = true;
-    // menuMode = false;
-    send_update = true;
-    displayMenu();
-    break;
-
-  case PROFILE:
-    DPROFILE_NR += 1;
-    if (DPROFILE_NR > 4) {
-      DPROFILE_NR = 0;
-    }
-    activateProfile(DPROFILE_NR);
-    displayMenu();
-    break;
-
-  case EXITM:
-    // displayDebugInfo();
-    menuMode = false;
-    break;
+    case EXITM:
+      //displayDebugInfo();
+      menuMode = false;
+      break;
 
     // case RESET_GPS:
     //   stopGPS();
     //   delay(1000);
     //   startGPS();
-    //   deviceState = DEVICE_STATE_CYCLE;
+    //   deviceState = DEVICE_STATE_CYCLE;  
     //   menuMode = false;
     //   break;
 
@@ -798,205 +818,191 @@ void executeMenu(void) {
     //   menuMode = false;
     //   break;
 
-  default:
-    menuMode = false;
-    break;
+    default:
+      menuMode = false;
+      break;
   }
-  // if (!screenOffMode)
+  //if (!screenOffMode)
   //{
-  //   display.clear();
-  //   display.display();
-  // }
+  //  display.clear();
+  //  display.display();
+  //}
 }
 
-static void OnMenuIdleTimeout() {
+static void OnMenuIdleTimeout()
+{
   TimerStop(&menuIdleTimeout);
 
-  if (menuMode) {
+  if (menuMode)
+  {
     menuMode = false;
-    if (DSCREEN_OFF) {
+    if (DSCREEN_OFF)
+    {
       TimerReset(&displayIdleTimeout);
     }
   }
 }
 
-static void OnDisplayIdleTimeout() {
+static void OnDisplayIdleTimeout()
+{
   TimerStop(&displayIdleTimeout);
 
-  if (menuMode) {
-    // restart Timer
+  if (menuMode){
+    //restart Timer
     TimerReset(&displayIdleTimeout);
-    // TimerSetValue(&displayIdleTimeout, DISPLAY_IDLE_TIMEOUT);
-    // TimerStart(&displayIdleTimeout);
+    //TimerSetValue(&displayIdleTimeout, DISPLAY_IDLE_TIMEOUT);
+    //TimerStart(&displayIdleTimeout);
   } else {
-    // menuMode = false;
-    // if (!screenOffMode)
+    //menuMode = false;
+    //if (!screenOffMode)
     //{
-    //   display.clear();
-    //   display.display();
-    // }
-    // }
+    //  display.clear();
+    //  display.display();
+    //}
+    //}
     switchScrenOffMode();
   }
 }
 
-void switchModeToSleep() {
+void switchModeToSleep()
+{
   sleepMode = true;
-  // if (!screenOffMode)
+  //if (!screenOffMode)
   //{
-  // if (!isDispayOn)
-  //{
-  // display.wakeup();
-  // isDispayOn = 1;
-  //}
-  displayLogoAndMsg("Sleeping...", 2000);
-  sleep_display();
-  VextOFF();
-  // display.sleep();
-  isDispayOn = 0;
+    //if (!isDispayOn)
+    //{
+      //display.wakeup();
+      //isDispayOn = 1;
+    //} 
+    displayLogoAndMsg("Sleeping...", 2000);
+    sleep_display();
+    VextOFF();
+    //display.sleep();
+    isDispayOn = 0;
   //}
   //#ifdef DEBUG
-  // else
+  //else
   //{
-  Serial.println("Going to sleep...");
+    Serial.println("Going to sleep...");
   //}
   //#endif
   sleep_gps();
-  Radio.Sleep(); // Not sure this is needed. It is called by LoRaAPP.cpp in various places after TX done or timeout. Most probably in 99% of the cases it will be already called when we get here.
+  Radio.Sleep(); // Not sure this is needed. It is called by LoRaAPP.cpp in various places after TX done or timeout. Most probably in 99% of the cases it will be already called when we get here. 
   LoRaWAN.sleep();
 
-  // sendLastLoc = trackerMode; // After wake up, if tracker mode enabled - send the last known location before waiting for GPS
+  //sendLastLoc = trackerMode; // After wake up, if tracker mode enabled - send the last known location before waiting for GPS
   //#ifdef VIBR_SENSOR
-  // setVibrAutoWakeUp();
+  //setVibrAutoWakeUp();
   //#endif
-  // deviceState = DEVICE_STATE_SLEEP;
+  //deviceState = DEVICE_STATE_SLEEP;
 }
 
 // RGB LED power on
-void VextON(void) {
+void VextON(void)
+{
   pinMode(Vext, OUTPUT);
   digitalWrite(Vext, LOW);
 }
 
 // RGB LED power off
-void VextOFF(void) {
+void VextOFF(void) 
+{
   pinMode(Vext, OUTPUT);
   digitalWrite(Vext, HIGH);
 }
 
-float getBattVoltage() {
-  uint16_t battVoltage;
-  detachInterrupt(USER_KEY); // reading battery voltage is messing up with the pin and driving it down, which simulates a long press for our interrupt handler
 
-  battVoltage  = getBatteryVoltage();
-  float_t batV = ((float_t)battVoltage * VBAT_CORRECTION) / 1000; // Multiply by the appropriate value for your own device to adjust the measured value after calibration
-  attachInterrupt(USER_KEY, userKey, FALLING);                    // Attach again after voltage reading is done
+float getBattVoltage()
+{
+  uint16_t battVoltage;
+  detachInterrupt(USER_KEY); // reading battery voltage is messing up with the pin and driving it down, which simulates a long press for our interrupt handler 
+  
+  battVoltage = getBatteryVoltage();
+  float_t batV = ((float_t)battVoltage * VBAT_CORRECTION)/1000;  // Multiply by the appropriate value for your own device to adjust the measured value after calibration
+  attachInterrupt(USER_KEY, userKey, FALLING);  // Attach again after voltage reading is done
   return batV;
 }
 
-uint8_t getBattStatus() {
+uint8_t getBattStatus()
+{
   uint8_t batteryLevel;
-  // float_t batteryLevelPct;
-  detachInterrupt(USER_KEY); // reading battery voltage is messing up with the pin and driving it down, which simulates a long press for our interrupt handler
+  //float_t batteryLevelPct;
+  detachInterrupt(USER_KEY); // reading battery voltage is messing up with the pin and driving it down, which simulates a long press for our interrupt handler 
 
-  // get Battery Level 1-254 Returned by BoardGetBatteryLevel
-  //!!In Practice 0 is never returned? No Battery = 254 !!
-  /*                                0: USB,
-   *                                 1: Min level,
-   *                                 x: level
-   *                               254: fully charged,
-   *                               255: Error
-   */
+    //get Battery Level 1-254 Returned by BoardGetBatteryLevel 
+    //!!In Practice 0 is never returned? No Battery = 254 !!
+    /*                                0: USB,
+    *                                 1: Min level,
+    *                                 x: level
+    *                               254: fully charged,
+    *                               255: Error
+    */
   batteryLevel = BoardGetBatteryLevel();
-  // batteryLevelPct = ((float_t)batteryLevel - BAT_LEVEL_EMPTY) * 100 / (BAT_LEVEL_FULL - BAT_LEVEL_EMPTY);
-
-  attachInterrupt(USER_KEY, userKey, FALLING); // Attach again after voltage reading is done
+  //batteryLevelPct = ((float_t)batteryLevel - BAT_LEVEL_EMPTY) * 100 / (BAT_LEVEL_FULL - BAT_LEVEL_EMPTY);
+  
+  attachInterrupt(USER_KEY, userKey, FALLING);  // Attach again after voltage reading is done
   return batteryLevel;
 }
 
-void switchScrenOffMode() {
-  screenOffMode = true;
-  // displayLogoAndMsg("Scren off....", 2000);
+void switchScrenOffMode()
+{
+  screenOffMode = true;  
+  //displayLogoAndMsg("Scren off....", 2000);          
   VextOFF();
   stop_display();
-  isDispayOn = 0;
+  isDispayOn = 0;   
 }
 
-void switchScreenOnMode() {
-  screenOffMode = false;
+void switchScreenOnMode()
+{
+  screenOffMode = false;  
   VextON();
   setup_display();
   isDispayOn = 1;
-  displayLogoAndMsg("Screen on...", 1000);
-  // display.clear();
-  // display.display();
+  displayLogoAndMsg("Screen on...", 1000);  
+  //display.clear();
+  //display.display();
 }
 
-void activateProfile(int profileNr) {
-  Serial.print("Activate Profile #: ");
-  Serial.println(profileNr);
+void activateProfile(int profileNr){
+  Serial.print("Activate Profile #: ");Serial.println(profileNr);
+  String GPSMODESTR;
   switch (profileNr) {
-  case 0:
-    DSB_ACTIVE      = SB_ACTIVE;
-    DBEACON_TIMEOUT = BEACON_TIMEOUT;
-    DBEACON_MESSAGE = BEACON_MESSAGE;
-    DBEACON_OVERLAY = BEACON_OVERLAY;
-    DBEACON_SYMBOL  = BEACON_SYMBOL;
-    DCALLSIGN       = CALLSIGN;
+    case 0:
+      DSB_ACTIVE = SB_ACTIVE;
+      DBEACON_TIMEOUT = BEACON_TIMEOUT;
+      DBEACON_MESSAGE = BEACON_MESSAGE;
+      DBEACON_OVERLAY = BEACON_OVERLAY;
+      DBEACON_SYMBOL = BEACON_SYMBOL;
+      DCALLSIGN = CALLSIGN;
+      DGPSMODE = GPSMODE;
+      DSOSTIMEOUT = SOSTIMEOUT * 1000;
+
     break;
-  case 1:
-    DSB_ACTIVE      = P1_SB_ACTIVE;
-    DBEACON_TIMEOUT = P1_BEACON_TIMEOUT;
-    DBEACON_MESSAGE = P1_BEACON_MESSAGE;
-    DBEACON_OVERLAY = P1_BEACON_OVERLAY;
-    DBEACON_SYMBOL  = P1_BEACON_SYMBOL;
-    DCALLSIGN       = P1_CALLSIGN;
+    case 1:
+      DSB_ACTIVE = P1_SB_ACTIVE;
+      DBEACON_TIMEOUT = P1_BEACON_TIMEOUT;
+      DBEACON_MESSAGE = P1_BEACON_MESSAGE;
+      DBEACON_OVERLAY = P1_BEACON_OVERLAY;
+      DBEACON_SYMBOL = P1_BEACON_SYMBOL;
+      DCALLSIGN = P1_CALLSIGN;
+      DGPSMODE = P1_GPSMODE;
+      DSOSTIMEOUT = P1_SOSTIMEOUT * 1000;
+
     break;
-  case 2:
-    DSB_ACTIVE      = P2_SB_ACTIVE;
-    DBEACON_TIMEOUT = P2_BEACON_TIMEOUT;
-    DBEACON_MESSAGE = P2_BEACON_MESSAGE;
-    DBEACON_OVERLAY = P2_BEACON_OVERLAY;
-    DBEACON_SYMBOL  = P2_BEACON_SYMBOL;
-    DCALLSIGN       = P2_CALLSIGN;
+    case 2:
+      DSB_ACTIVE = P2_SB_ACTIVE;
+      DBEACON_TIMEOUT = P2_BEACON_TIMEOUT;
+      DBEACON_MESSAGE = P2_BEACON_MESSAGE;
+      DBEACON_OVERLAY = P2_BEACON_OVERLAY;
+      DBEACON_SYMBOL = P2_BEACON_SYMBOL;
+      DCALLSIGN = P2_CALLSIGN;
+      DGPSMODE = P2_GPSMODE;
+      DSOSTIMEOUT = P2_SOSTIMEOUT * 1000;
+
     break;
-  case 3:
-    DSB_ACTIVE      = P3_SB_ACTIVE;
-    DBEACON_TIMEOUT = P3_BEACON_TIMEOUT;
-    DBEACON_MESSAGE = P3_BEACON_MESSAGE;
-    DBEACON_OVERLAY = P3_BEACON_OVERLAY;
-    DBEACON_SYMBOL  = P3_BEACON_SYMBOL;
-    DCALLSIGN       = P3_CALLSIGN;
-    WEATHER_DATA    = true;
-    break;
-  case 4:
-    DSB_ACTIVE        = P4_SB_ACTIVE;
-    DBEACON_TIMEOUT   = P4_BEACON_TIMEOUT;
-    DBEACON_MESSAGE   = P4_BEACON_MESSAGE;
-    DBEACON_OVERLAY   = P4_BEACON_OVERLAY;
-    DBEACON_SYMBOL    = P4_BEACON_SYMBOL;
-    DBEACON_LATITUDE  = BEACON_LATITUDE;
-    DBEACON_LONGITUDE = BEACON_LONGITUDE;
-    DCALLSIGN         = P4_CALLSIGN;
-    STATIC_BEACON     = true;
   }
-}
 
-void telemetry() {
-  Serial.print("Temperature = ");
-  Serial.print(bmp.readTemperature());
-  Serial.println(" *C");
-  TEMP = bmp.readTemperature();
-  // convert temp to farhenheit
-  // APRS expects temp in Farenheit
-  TEMP = (TEMP * 9 / 5) + 32;
-  Serial.print("Pressure = ");
-  Serial.print(bmp.readPressure());
-  Serial.println(" Pa");
-  PRESS          = bmp.readPressure();
-  accelerometerx = mpu.getAccelerationX();
-  accelerometery = mpu.getAccelerationY();
-  accelerometerz = mpu.getAccelerationZ();
-
-  // delay(500);
+  GPSMODESTR = "$PMTK886,"+String(DGPSMODE)+"*2B\r\n";
+  gps.sendcmd(GPSMODESTR);
 }
